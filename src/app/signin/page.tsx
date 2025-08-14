@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { Separator } from '@/components/ui/separator';
 import { signInAction } from '@/lib/actions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -66,15 +65,6 @@ export default function SignInPage() {
             </div>
             <SubmitButton />
           </form>
-          <Separator className="my-6" />
-          <div className="space-y-4">
-            <Button variant="outline" className="w-full">
-              Sign In with Google
-            </Button>
-            <Button variant="outline" className="w-full">
-              Sign In with GitHub
-            </Button>
-          </div>
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">
