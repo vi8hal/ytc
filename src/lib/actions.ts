@@ -126,38 +126,44 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
   const otp = formData.get('otp') as string;
   const token = cookies().get('verification_token')?.value;
 
-  if (!token) {
-    return { error: 'Verification session expired. Please sign up again.' };
+  let user: any;
+
+  if (token) {
+    try {
+        const payload: any = await verifyVerificationToken(token);
+        const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
+        user = result.rows[0];
+    } catch (error) {
+        // Token is invalid, proceed to check by OTP
+    }
   }
 
-  try {
-    const payload: any = await verifyVerificationToken(token);
-    const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
-    const user = result.rows[0];
-
+  // If user not found via token, try to find by OTP
+  if (!user) {
+    const result = await db.query`SELECT * FROM users WHERE otp = ${otp}`;
+    user = result.rows[0];
     if (!user) {
-      return { error: 'User not found.' };
+        return { error: 'Invalid OTP or session expired. Please sign up again.' };
     }
-    if (user.otp !== otp) {
-      return { error: 'Invalid OTP.' };
-    }
-    if (!user.otpExpires || new Date() > user.otpExpires) {
-        return { error: 'OTP has expired. Please request a new one.' };
-    }
-
-    await db.query`
-      UPDATE users 
-      SET verified = ${true}, otp = ${null}, "otpExpires" = ${null}
-      WHERE email = ${user.email}
-    `;
-
-    cookies().delete('verification_token');
-    const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
-    cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
-  } catch (error) {
-    return { error: 'Invalid or expired verification session.' };
   }
+
+  if (user.otp !== otp) {
+    return { error: 'Invalid OTP.' };
+  }
+
+  if (!user.otpExpires || new Date() > user.otpExpires) {
+      return { error: 'OTP has expired. Please request a new one.' };
+  }
+
+  await db.query`
+    UPDATE users 
+    SET verified = ${true}, otp = ${null}, "otpExpires" = ${null}
+    WHERE email = ${user.email}
+  `;
+
+  cookies().delete('verification_token');
+  const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
+  cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 
   redirect('/dashboard');
 }
