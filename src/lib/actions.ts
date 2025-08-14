@@ -353,7 +353,7 @@ async function getApiKeyForCurrentUser() {
         throw new Error('User not authenticated.');
     }
     const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
-    const apiKey = result.rows[0]?.youtubeapikey;
+    const apiKey = result.rows[0]?.youtubeApiKey;
     if (!apiKey) {
         throw new Error('YouTube API Key not configured. Please add it in settings.');
     }
@@ -427,7 +427,7 @@ export async function getApiKeyAction() {
             return { apiKey: null, error: 'User not authenticated' };
         }
         const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
-        const apiKey = result.rows[0]?.youtubeapikey || null;
+        const apiKey = result.rows[0]?.youtubeApiKey || null;
         return { apiKey: apiKey, error: null };
     } catch (error) {
         console.error("Error getting API key:", error);
