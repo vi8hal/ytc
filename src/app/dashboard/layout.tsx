@@ -5,9 +5,6 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
   SidebarFooter,
@@ -15,7 +12,7 @@ import {
 import { Logo } from "@/components/logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Settings, LogOut, PanelLeft } from "lucide-react"
+import { LogOut, PanelLeft } from "lucide-react"
 import { logOutAction } from "@/lib/actions";
 
 export default function DashboardLayout({
@@ -31,24 +28,7 @@ export default function DashboardLayout({
             <Logo />
           </SidebarHeader>
           <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard">
-                    <LayoutDashboard />
-                    Dashboard
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link href="/dashboard/settings">
-                    <Settings />
-                    Settings
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+            {/* Sidebar menu has been removed as requested */}
           </SidebarContent>
           <SidebarFooter>
             <div className="flex items-center gap-3 rounded-md p-2 transition-colors">
