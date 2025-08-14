@@ -47,31 +47,31 @@ const ShuffleActionSchema = z.object({
 
 async function sendVerificationEmail(email: string, otp: string) {
   console.log(`Attempting to send verification email to: ${email}`);
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_SERVER_HOST,
-    port: Number(process.env.EMAIL_SERVER_port) || 587,
-    secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
-    auth: {
-      user: process.env.EMAIL_SERVER_USER,
-      pass: process.env.EMAIL_SERVER_PASSWORD,
-    },
-  });
-
-  const mailOptions = {
-    from: process.env.EMAIL_FROM,
-    to: email,
-    subject: 'Your ChronoComment Verification Code',
-    html: `
-      <div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-        <h2>Welcome to ChronoComment!</h2>
-        <p>Your one-time verification code is:</p>
-        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
-        <p style="color: #666;">This code will expire in 10 minutes.</p>
-      </div>
-    `,
-  };
-
   try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
+        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
+        auth: {
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+      });
+
+      const mailOptions = {
+        from: process.env.EMAIL_FROM,
+        to: email,
+        subject: 'Your ChronoComment Verification Code',
+        html: `
+          <div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+            <h2>Welcome to ChronoComment!</h2>
+            <p>Your one-time verification code is:</p>
+            <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
+            <p style="color: #666;">This code will expire in 10 minutes.</p>
+          </div>
+        `,
+      };
+
     await transporter.sendMail(mailOptions);
     console.log(`Verification email sent successfully to ${email}`);
   } catch (error) {
@@ -222,10 +222,9 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             console.warn('Verification token not found or invalid, trying OTP directly.');
             const result = await db.query`SELECT * FROM users WHERE otp = ${otp} AND "otpExpires" > NOW()`;
             user = result.rows[0];
-        }
-        
-        if (!user) {
-             return { error: 'Invalid or expired OTP. Please sign in again to get a new code.' };
+             if (!user) {
+                return { error: 'Invalid or expired OTP. Please sign in again to get a new code.' };
+            }
         }
         
         if (user.otp !== otp) {
@@ -276,6 +275,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
         if (user) {
             console.log(`Password reset requested for existing user: ${email}`);
             const otp = await generateAndSaveOtp(email);
+            // Re-using verification email, but a dedicated password reset email would be better.
             await sendVerificationEmail(email, `Your password reset code is: ${otp}`);
             
             const verificationToken = await createVerificationToken({ email, isPasswordReset: true });
@@ -286,6 +286,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
     } catch(e) {
         console.error("Error in forgot password action:", e);
     }
+    // Always return a generic message to prevent user enumeration attacks.
     return { error: null, message: 'If an account with that email exists, a reset code has been sent.' };
 }
 
