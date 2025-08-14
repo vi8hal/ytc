@@ -3,7 +3,7 @@
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,8 +12,8 @@ import { shuffleCommentsAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { Video } from './dashboard-client';
 import type { ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
-import { Bot, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Bot, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface CommentFormProps {
   selectedVideos: Video[];
@@ -41,6 +41,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 
 export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormProps) {
   const { toast } = useToast();
+  const formRef = useRef<HTMLFormElement>(null);
   const initialState = { data: null, error: null, message: null };
   const [state, formAction] = useActionState(shuffleCommentsAction, initialState);
 
@@ -54,8 +55,9 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
         variant: state.error ? 'destructive' : 'default',
       });
     }
-    if (state.data?.results) {
+    if (!state.error && state.data?.results) {
       onShuffleComplete(state.data.results);
+      formRef.current?.reset();
     }
   }, [state, toast, onShuffleComplete]);
 
@@ -68,7 +70,7 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-4">
+        <form ref={formRef} action={formAction} className="space-y-4">
           <input type="hidden" name="videoIds" value={selectedVideos.map(v => v.id).join(',')} />
           
           {[1, 2, 3, 4].map((i) => (
@@ -87,8 +89,9 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
 
           <SubmitButton disabled={isDisabled} />
           {isDisabled && (
-            <Alert variant="destructive" className="text-center">
-                <AlertDescription>Please select at least one video in Step 3.</AlertDescription>
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>Please select at least one video in Step 3 to enable this form.</AlertDescription>
             </Alert>
           )}
         </form>
@@ -96,3 +99,5 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
     </Card>
   );
 }
+
+    

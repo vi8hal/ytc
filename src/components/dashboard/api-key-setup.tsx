@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
 import { KeyRound, Loader2, Save, Terminal } from 'lucide-react';
 import { updateApiKeyAction } from '@/lib/actions';
@@ -85,7 +85,7 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
             <CardHeader>
                 <CardTitle className="font-headline text-xl">Step 1: YouTube API Setup</CardTitle>
                 <CardDescription>
-                    Your API key is stored securely and used for all YouTube interactions.
+                    Your YouTube Data API key is required to search for channels and videos.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -117,7 +117,7 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
                         <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline underline-offset-4">
                             Google Cloud Console
                         </a>
-                        . Make sure the API is enabled for your project.
+                        . Make sure the YouTube Data API v3 is enabled for your project.
                     </AlertDescription>
                 </Alert>
 
@@ -125,3 +125,5 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
         </Card>
     );
 }
+
+    

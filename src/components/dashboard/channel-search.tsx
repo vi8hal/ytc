@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, AlertCircle } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
 import { cn } from '@/lib/utils';
@@ -42,9 +42,9 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
       try {
         const results = await searchChannels(query);
         setChannels(results);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to search channels:', error);
-        setError('Failed to search for channels. Check your API key and permissions.');
+        setError(error.message || 'An unknown error occurred.');
         setChannels([]);
       } finally {
         setIsLoading(false);
@@ -52,6 +52,15 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
     }, 500),
     []
   );
+
+  useEffect(() => {
+    // When the popover closes, if there's no selection, reset the search.
+    if (!open && !selectedChannel) {
+      setSearchQuery('');
+      setChannels([]);
+      setError(null);
+    }
+  }, [open, selectedChannel]);
 
   useEffect(() => {
     debouncedSearch(searchQuery);
@@ -65,8 +74,9 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
       </CardHeader>
       <CardContent>
         {disabled ? (
-            <Alert variant="destructive">
-                <AlertDescription>Please set your YouTube API key in Step 1 before searching for channels.</AlertDescription>
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>Please provide a valid YouTube API key in Step 1 to enable channel search.</AlertDescription>
             </Alert>
         ) : (
             <Popover open={open} onOpenChange={setOpen}>
@@ -132,3 +142,5 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
     </Card>
   );
 }
+
+    

@@ -384,10 +384,12 @@ export async function searchChannels(query: string) {
     console.log(`Found ${channels.length} channels.`);
     return channels;
 
-  } catch (error) {
-    console.error('Error searching YouTube channels:', error);
-    // Let the client handle the error.
-    throw error;
+  } catch (error: any) {
+    console.error('Error searching YouTube channels:', error.message);
+    if (error.message.includes('API key not valid')) {
+        throw new Error('Your YouTube API Key is invalid or has been revoked. Please check it in the Google Cloud Console.');
+    }
+    throw new Error('Failed to search for channels. Please check your API key and permissions.');
   }
 }
 
@@ -413,9 +415,9 @@ export async function getChannelVideos(channelId: string) {
     
     console.log(`Found ${videos.length} videos for channel ${channelId}.`);
     return videos;
-  } catch (error) {
-    console.error(`Error fetching videos for channel ${channelId}:`, error);
-    throw error;
+  } catch (error: any) {
+    console.error(`Error fetching videos for channel ${channelId}:`, error.message);
+    throw new Error('Failed to fetch videos. The selected channel may have disabled API access or your API key is invalid.');
   }
 }
 
@@ -427,14 +429,16 @@ export async function getApiKeyAction() {
         await initializeDb();
         const userId = await getUserIdFromSession();
         if (!userId) {
+            console.warn('getApiKeyAction called without authenticated user.');
             return { apiKey: null, error: 'User not authenticated' };
         }
         const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
         const apiKey = result.rows[0]?.youtubeApiKey || null;
+        console.log(`API key for user ${userId} is ${apiKey ? 'set' : 'not set'}.`);
         return { apiKey: apiKey, error: null };
     } catch (error) {
         console.error("Error getting API key:", error);
-        return { apiKey: null, error: 'Failed to retrieve API key.' };
+        return { apiKey: null, error: 'Failed to retrieve API key from the database.' };
     }
 }
 
@@ -444,22 +448,27 @@ export async function updateApiKeyAction(prevState: any, formData: FormData) {
     const validation = ApiKeySchema.safeParse(apiKey);
 
     if (!validation.success) {
+        console.warn("API Key validation failed:", validation.error.flatten().formErrors[0]);
         return { error: true, message: validation.error.flatten().formErrors[0] };
     }
     
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
-            return { error: true, message: 'Authentication failed.' };
+            console.error("Update API Key failed: User not authenticated.");
+            return { error: true, message: 'Authentication failed. Please sign in again.' };
         }
 
+        console.log(`Updating API key for user ${userId}...`);
         await db.query`
             UPDATE user_settings SET "youtubeApiKey" = ${apiKey} WHERE "userId" = ${userId}
         `;
-
+        console.log(`API key for user ${userId} updated successfully.`);
         return { error: null, message: 'API Key updated successfully.' };
     } catch(e) {
         console.error("Error in updateApiKeyAction:", e);
-        return { error: true, message: 'An unexpected error occurred.' };
+        return { error: true, message: 'An unexpected server error occurred while saving the key.' };
     }
 }
+
+    

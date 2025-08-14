@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import type { Video } from './dashboard-client';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription } from '../ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface VideoSelectionProps {
   videos: Video[];
@@ -14,9 +15,10 @@ interface VideoSelectionProps {
   selectedVideos: Video[];
   onSelectedVideosChange: (videos: Video[]) => void;
   disabled?: boolean;
+  error?: string | null;
 }
 
-export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVideosChange, disabled = false }: VideoSelectionProps) {
+export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVideosChange, disabled = false, error = null }: VideoSelectionProps) {
   const handleSelectVideo = (video: Video, checked: boolean) => {
     if (checked) {
       onSelectedVideosChange([...selectedVideos, video]);
@@ -36,19 +38,41 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
     }
   }
 
-  return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="font-headline text-xl">Step 3: Select Videos</CardTitle>
-        <CardDescription>Choose the videos you want to shuffle comments on.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {disabled ? (
-          <Alert>
-              <AlertDescription>Please select a channel in Step 2 to see a list of videos.</AlertDescription>
-          </Alert>
-        ) : (
-          <div className="space-y-4">
+  const renderContent = () => {
+    if (disabled) {
+      return (
+        <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>Please select a channel in Step 2 to see its videos.</AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (isLoading) {
+      return (
+        <div className="space-y-2">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
+        </div>
+      );
+    }
+
+    if (error) {
+       return (
+        <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (videos.length === 0) {
+      return (
+        <p className="text-center text-muted-foreground text-sm py-8">No videos found for this channel.</p>
+      );
+    }
+
+    return (
+        <div className="space-y-4">
             <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors border">
               <Checkbox
                 id="select-all"
@@ -63,31 +87,37 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
               </Label>
             </div>
             <div className="space-y-2 max-h-72 overflow-y-auto pr-2 border rounded-md p-2">
-              {isLoading ? (
-                  [...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)
-              ) : videos.length === 0 ? (
-                  <p className="text-center text-muted-foreground text-sm py-8">No videos found for this channel.</p>
-              ) : (
-                  videos.map((video) => (
-                  <div
-                      key={video.id}
-                      className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
-                  >
-                      <Checkbox
-                      id={video.id}
-                      checked={selectedVideos.some((v) => v.id === video.id)}
-                      onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
-                      />
-                      <Label htmlFor={video.id} className="flex-1 cursor-pointer text-sm font-normal">
-                      {video.title}
-                      </Label>
-                  </div>
-                  ))
-              )}
+                {videos.map((video) => (
+                <div
+                    key={video.id}
+                    className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
+                >
+                    <Checkbox
+                    id={video.id}
+                    checked={selectedVideos.some((v) => v.id === video.id)}
+                    onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
+                    />
+                    <Label htmlFor={video.id} className="flex-1 cursor-pointer text-sm font-normal">
+                    {video.title}
+                    </Label>
+                </div>
+                ))}
             </div>
           </div>
-        )}
+    );
+  }
+
+  return (
+    <Card className="shadow-lg">
+      <CardHeader>
+        <CardTitle className="font-headline text-xl">Step 3: Select Videos</CardTitle>
+        <CardDescription>Choose the videos you want the AI to comment on.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {renderContent()}
       </CardContent>
     </Card>
   );
 }
+
+    
