@@ -1,18 +1,22 @@
 
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { KeyRound, Loader2, Save } from 'lucide-react';
+import { KeyRound, Loader2, Save, Terminal } from 'lucide-react';
 import { updateApiKeyAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Skeleton } from '../ui/skeleton';
 
-interface SettingsFormProps {
+interface ApiKeySetupProps {
     currentApiKey: string | null;
+    onApiKeyUpdate: (apiKey: string) => void;
+    isLoading: boolean;
 }
 
 function SubmitButton() {
@@ -35,9 +39,14 @@ function SubmitButton() {
 }
 
 
-export function SettingsForm({ currentApiKey }: SettingsFormProps) {
+export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKeySetupProps) {
     const { toast } = useToast();
     const [state, formAction] = useActionState(updateApiKeyAction, { message: null, error: null });
+    const [apiKey, setApiKey] = useState(currentApiKey);
+
+     useEffect(() => {
+        setApiKey(currentApiKey);
+    }, [currentApiKey]);
 
     useEffect(() => {
         if (state?.message) {
@@ -46,18 +55,36 @@ export function SettingsForm({ currentApiKey }: SettingsFormProps) {
                 description: state.message,
                 variant: state.error ? 'destructive' : 'default',
             });
+            if (!state.error && apiKey) {
+                onApiKeyUpdate(apiKey);
+            }
         }
-    }, [state, toast]);
+    }, [state, toast, onApiKeyUpdate, apiKey]);
+
+    if (isLoading) {
+        return (
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                </CardHeader>
+                <CardContent className='space-y-4'>
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-32" />
+                </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="font-headline text-xl">YouTube API Credentials</CardTitle>
+                <CardTitle className="font-headline text-xl">Step 1: YouTube API Setup</CardTitle>
                 <CardDescription>
                     Your API key is stored securely and used for all YouTube interactions.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
                 <form action={formAction} className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="apiKey">API Key</Label>
@@ -68,7 +95,8 @@ export function SettingsForm({ currentApiKey }: SettingsFormProps) {
                                 name="apiKey"
                                 type="password"
                                 placeholder="Enter your YouTube Data API key"
-                                defaultValue={currentApiKey ?? ''}
+                                value={apiKey ?? ''}
+                                onChange={(e) => setApiKey(e.target.value)}
                                 required
                                 className="pl-10"
                             />
@@ -76,6 +104,19 @@ export function SettingsForm({ currentApiKey }: SettingsFormProps) {
                     </div>
                     <SubmitButton />
                 </form>
+                
+                <Alert>
+                    <Terminal className="h-4 w-4" />
+                    <AlertTitle>Where to find your API Key</AlertTitle>
+                    <AlertDescription>
+                        You can obtain a YouTube Data API key from the{' '}
+                        <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline underline-offset-4">
+                            Google Cloud Console
+                        </a>
+                        . Make sure the API is enabled for your project.
+                    </AlertDescription>
+                </Alert>
+
             </CardContent>
         </Card>
     );

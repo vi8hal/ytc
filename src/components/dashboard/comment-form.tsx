@@ -85,7 +85,7 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
           <SubmitButton disabled={selectedVideos.length === 0} />
           {selectedVideos.length === 0 && (
             <Alert variant="destructive" className="text-center">
-                <AlertDescription>Please select at least one video.</AlertDescription>
+                <AlertDescription>Please select at least one video in Step 2.</AlertDescription>
             </Alert>
           )}
         </form>

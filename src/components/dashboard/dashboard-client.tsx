@@ -8,12 +8,15 @@ import { VideoSelection } from './video-selection';
 import { CommentForm } from './comment-form';
 import { ResultsTimeline } from './results-timeline';
 import { Separator } from '@/components/ui/separator';
-import { getChannelVideos } from '@/lib/actions';
+import { getChannelVideos, getApiKeyAction } from '@/lib/actions';
+import { ApiKeySetup } from './api-key-setup';
 
 export type Video = { id: string; title: string };
 export type Channel = { id: string; name: string };
 
 export function DashboardClient() {
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [isApiKeyLoading, setIsApiKeyLoading] = useState(true);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
@@ -21,8 +24,25 @@ export function DashboardClient() {
   const [shuffleResults, setShuffleResults] = useState<ShuffleCommentsOutput['results'] | null>(null);
 
   useEffect(() => {
+    async function fetchApiKey() {
+      try {
+        const result = await getApiKeyAction();
+        if (result.apiKey) {
+            setApiKey(result.apiKey);
+        }
+      } catch (error) {
+        console.error("Failed to fetch API key", error);
+      } finally {
+        setIsApiKeyLoading(false);
+      }
+    }
+    fetchApiKey();
+  }, []);
+
+
+  useEffect(() => {
     const fetchVideos = async () => {
-      if (!selectedChannel) {
+      if (!selectedChannel || !apiKey) {
         setVideos([]);
         return;
       }
@@ -39,7 +59,7 @@ export function DashboardClient() {
     };
 
     fetchVideos();
-  }, [selectedChannel]);
+  }, [selectedChannel, apiKey]);
 
   const handleChannelSelect = (channel: Channel | null) => {
     setSelectedChannel(channel);
@@ -50,13 +70,20 @@ export function DashboardClient() {
   const handleShuffleComplete = (results: ShuffleCommentsOutput['results']) => {
     setShuffleResults(results);
   };
+  
+  const handleApiKeyUpdate = (newApiKey: string) => {
+    setApiKey(newApiKey);
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2 space-y-8">
+        <ApiKeySetup currentApiKey={apiKey} onApiKeyUpdate={handleApiKeyUpdate} isLoading={isApiKeyLoading} />
+
         <ChannelSearch
             onChannelSelect={handleChannelSelect}
             selectedChannel={selectedChannel}
+            disabled={!apiKey}
         />
         {selectedChannel && (
           <VideoSelection
