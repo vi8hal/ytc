@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 
 import {
   createSessionToken,
@@ -236,5 +237,64 @@ export async function shuffleCommentsAction(
     console.error(error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { data: null, error: errorMessage, message: 'Failed to shuffle comments.' };
+  }
+}
+
+
+// --- YouTube API Actions ---
+
+const youtube = google.youtube({
+  version: 'v3',
+  auth: process.env.YOUTUBE_API_KEY,
+});
+
+export async function searchChannels(query: string) {
+  if (!query) return [];
+  if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
+    console.warn("YouTube API key is not configured. Returning empty array.");
+    return [];
+  }
+
+  try {
+    const response = await youtube.search.list({
+      part: ['snippet'],
+      q: query,
+      type: ['channel'],
+      maxResults: 10,
+    });
+
+    return response.data.items?.map(item => ({
+      id: item.id?.channelId || '',
+      name: item.snippet?.title || 'Untitled Channel',
+    })) || [];
+  } catch (error) {
+    console.error('Error searching YouTube channels:', error);
+    return [];
+  }
+}
+
+export async function getChannelVideos(channelId: string) {
+  if (!channelId) return [];
+  if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
+    console.warn("YouTube API key is not configured. Returning empty array.");
+    return [];
+  }
+
+  try {
+    const response = await youtube.search.list({
+      part: ['snippet'],
+      channelId: channelId,
+      type: ['video'],
+      maxResults: 20,
+      order: 'date',
+    });
+
+    return response.data.items?.map(item => ({
+      id: item.id?.videoId || '',
+      title: item.snippet?.title || 'Untitled Video',
+    })) || [];
+  } catch (error) {
+    console.error('Error fetching channel videos:', error);
+    return [];
   }
 }
