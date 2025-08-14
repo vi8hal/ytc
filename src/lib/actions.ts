@@ -11,7 +11,7 @@ import {
   createVerificationToken,
   verifyVerificationToken,
 } from './auth';
-import { db } from './db';
+import { db, initializeDb } from './db';
 import { shuffleComments } from '@/ai/flows/shuffle-comments';
 import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 
@@ -57,7 +57,11 @@ export async function signInAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  const user = await db.user.findUnique({ where: { email } });
+  await initializeDb(); // Ensure table exists
+  
+  const result = await db.query`SELECT * FROM users WHERE email = ${email}`;
+  const user = result.rows[0];
+
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return { error: 'Invalid email or password.' };
   }
@@ -66,10 +70,7 @@ export async function signInAction(prevState: any, formData: FormData) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    await db.user.update({
-      where: { email },
-      data: { otp, otpExpires },
-    });
+    await db.query`UPDATE users SET otp = ${otp}, "otpExpires" = ${otpExpires} WHERE email = ${email}`;
       
     try {
       await sendVerificationEmail(email, otp);
@@ -93,8 +94,10 @@ export async function signUpAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  const existingUser = await db.user.findUnique({ where: { email } });
-  if (existingUser) {
+  await initializeDb(); // Ensure table exists
+
+  const existingUserResult = await db.query`SELECT * FROM users WHERE email = ${email}`;
+  if (existingUserResult.rowCount > 0) {
     return { error: 'An account with this email already exists.' };
   }
 
@@ -108,17 +111,11 @@ export async function signUpAction(prevState: any, formData: FormData) {
     return { error: 'Could not send verification email. Please try again.' };
   }
 
-  await db.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-      verified: false,
-      otp,
-      otpExpires,
-    },
-  });
-
+  await db.query`
+    INSERT INTO users (name, email, password, verified, otp, "otpExpires")
+    VALUES (${name}, ${email}, ${hashedPassword}, ${false}, ${otp}, ${otpExpires})
+  `;
+  
   const verificationToken = await createVerificationToken({ email });
   cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
   
@@ -135,7 +132,8 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 
   try {
     const payload: any = await verifyVerificationToken(token);
-    const user = await db.user.findUnique({ where: { email: payload.email } });
+    const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
+    const user = result.rows[0];
 
     if (!user) {
       return { error: 'User not found.' };
@@ -147,14 +145,11 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         return { error: 'OTP has expired. Please request a new one.' };
     }
 
-    await db.user.update({
-      where: { email: user.email },
-      data: {
-        verified: true,
-        otp: null,
-        otpExpires: null,
-      },
-    });
+    await db.query`
+      UPDATE users 
+      SET verified = ${true}, otp = ${null}, "otpExpires" = ${null}
+      WHERE email = ${user.email}
+    `;
 
     cookies().delete('verification_token');
     const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
@@ -169,16 +164,16 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 
 export async function forgotPasswordAction(prevState: any, formData: FormData) {
     const email = formData.get('email') as string;
-    const user = await db.user.findUnique({ where: { email } });
+    
+    await initializeDb(); // Ensure table exists
+    const result = await db.query`SELECT * FROM users WHERE email = ${email}`;
+    const user = result.rows[0];
 
     if (user) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         
-        await db.user.update({
-            where: { email },
-            data: { otp, otpExpires }
-        });
+        await db.query`UPDATE users SET otp = ${otp}, "otpExpires" = ${otpExpires} WHERE email = ${email}`;
 
         try {
             await sendVerificationEmail(email, otp); 
