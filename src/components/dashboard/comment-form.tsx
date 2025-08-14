@@ -44,6 +44,8 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
   const initialState = { data: null, error: null, message: null };
   const [state, formAction] = useActionState(shuffleCommentsAction, initialState);
 
+  const isDisabled = selectedVideos.length === 0;
+
   useEffect(() => {
     if (state.message) {
       toast({
@@ -60,7 +62,7 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-xl">Step 3: Add Your Comments</CardTitle>
+        <CardTitle className="font-headline text-xl">Step 4: Add & Send Comments</CardTitle>
         <CardDescription>
           Enter up to 4 comments. The AI will randomly pick one to post on each selected video.
         </CardDescription>
@@ -78,14 +80,15 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
                 placeholder={`Your brilliant comment #${i}...`}
                 rows={3}
                 required
+                disabled={isDisabled}
               />
             </div>
           ))}
 
-          <SubmitButton disabled={selectedVideos.length === 0} />
-          {selectedVideos.length === 0 && (
+          <SubmitButton disabled={isDisabled} />
+          {isDisabled && (
             <Alert variant="destructive" className="text-center">
-                <AlertDescription>Please select at least one video in Step 2.</AlertDescription>
+                <AlertDescription>Please select at least one video in Step 3.</AlertDescription>
             </Alert>
           )}
         </form>

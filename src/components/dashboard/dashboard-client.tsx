@@ -83,17 +83,17 @@ export function DashboardClient() {
         <ChannelSearch
             onChannelSelect={handleChannelSelect}
             selectedChannel={selectedChannel}
-            disabled={!apiKey}
+            disabled={!apiKey || isApiKeyLoading}
         />
-        {selectedChannel && (
-          <VideoSelection
-            key={selectedChannel.id}
-            videos={videos}
-            isLoading={isLoadingVideos}
-            selectedVideos={selectedVideos}
-            onSelectedVideosChange={setSelectedVideos}
-          />
-        )}
+        
+        <VideoSelection
+          key={selectedChannel?.id}
+          videos={videos}
+          isLoading={isLoadingVideos}
+          selectedVideos={selectedVideos}
+          onSelectedVideosChange={setSelectedVideos}
+          disabled={!selectedChannel}
+        />
       </div>
       <div className="lg:col-span-1 space-y-8 sticky top-24">
         <CommentForm 
