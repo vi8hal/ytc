@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
 
 import {
   createSessionToken,
@@ -16,18 +18,43 @@ import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shu
 // Mock user database
 const users: any = {};
 
-// Mock password verification
-function verifyPassword(password: string, hash: string): boolean {
-  // In a real app, use bcrypt.compareSync(password, hash);
-  // This is a mock, so we'll just compare the password to the stored "hash" (which is just the plain password for now)
-  return password === hash;
+// --- Helper Functions ---
+
+async function sendVerificationEmail(email: string, otp: string) {
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_SERVER_HOST,
+    port: Number(process.env.EMAIL_SERVER_PORT),
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_SERVER_USER,
+      pass: process.env.EMAIL_SERVER_PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: 'Your ChronoComment Verification Code',
+    html: `
+      <div style="font-family: sans-serif; text-align: center; padding: 20px;">
+        <h2>Welcome to ChronoComment!</h2>
+        <p>Your verification code is:</p>
+        <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px;">${otp}</p>
+        <p>This code will expire in 10 minutes.</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    // In a real app, you might want to throw an error or handle this more gracefully
+    throw new Error('Could not send verification email.');
+  }
 }
 
-// Mock password hashing
-function hashPassword(password: string): string {
-  // In a real app, use bcrypt.hashSync(password, 10);
-  return password;
-}
+// --- Server Actions ---
 
 export async function signInAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
@@ -36,17 +63,24 @@ export async function signInAction(prevState: any, formData: FormData) {
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const user = users[email];
-  if (!user || !verifyPassword(password, user.password)) {
+  if (!user || !bcrypt.compareSync(password, user.password)) {
     return { error: 'Invalid email or password.' };
   }
 
   if (!user.verified) {
-      // For the mock, we can redirect to OTP or just let them in.
-      // Let's assume for now they still need to verify.
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      
+      try {
+        await sendVerificationEmail(email, otp);
+      } catch (e) {
+        return { error: 'Could not send verification email. Please try again.' };
+      }
+
       const verificationToken = await createVerificationToken({ email });
       cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
       redirect('/verify-otp');
-      return { error: "Account not verified. Please check your email for the OTP." };
   }
 
   const sessionToken = await createSessionToken({ email });
@@ -62,17 +96,29 @@ export async function signUpAction(prevState: any, formData: FormData) {
 
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-
   if (users[email]) {
     return { error: 'An account with this email already exists.' };
   }
 
-  // Storing plain password in mock DB
-  const hashedPassword = hashPassword(password);
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  console.log(`Mock OTP for ${email}: ${otp}`); // Log OTP to console for testing
 
-  users[email] = { name, email, password: hashedPassword, verified: false, otp };
+  users[email] = { 
+      name, 
+      email, 
+      password: hashedPassword, 
+      verified: false, 
+      otp,
+      otpExpires: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
+  };
+  
+  try {
+    await sendVerificationEmail(email, otp);
+  } catch(e) {
+    // If email fails, don't create the user
+    delete users[email];
+    return { error: 'Could not send verification email. Please try again.' };
+  }
 
   const verificationToken = await createVerificationToken({ email });
   cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
@@ -100,9 +146,13 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     if (user.otp !== otp) {
       return { error: 'Invalid OTP.' };
     }
+    if (new Date() > user.otpExpires) {
+        return { error: 'OTP has expired. Please request a new one.' };
+    }
 
     user.verified = true;
-    user.otp = null; // Clear OTP after successful verification
+    user.otp = null;
+    user.otpExpires = null;
 
     cookies().delete('verification_token');
     const sessionToken = await createSessionToken({ email: user.email });
@@ -123,12 +173,22 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
 
     if (user) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        user.otp = otp; // Store OTP for reset
-        console.log(`Password Reset OTP for ${email}: ${otp}`); // Log to console for testing
+        user.otp = otp;
+        user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        
+        try {
+            // Re-using the verification email function for password reset
+            await sendVerificationEmail(email, otp); 
+            const verificationToken = await createVerificationToken({ email, isPasswordReset: true });
+            cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+
+        } catch (e) {
+            // Don't expose that the email sending failed
+        }
     }
 
     // Always return the same message to prevent email enumeration attacks
-    return { message: 'If an account with that email exists, a password reset link has been sent.' };
+    return { message: 'If an account with that email exists, an email with a reset code has been sent.' };
 }
 
 // GenAI action
