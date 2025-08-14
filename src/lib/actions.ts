@@ -95,12 +95,22 @@ async function getUserIdFromSession() {
     return payload?.userId as number | null;
 }
 
+async function runDbInit() {
+    // This is a temporary workaround to ensure the DB is initialized.
+    try {
+        await initializeDb();
+    } catch (e) {
+        console.error("DB init failed, but continuing...", e)
+    }
+}
+
 
 // --- Server Actions ---
 
 export async function signInAction(prevState: any, formData: FormData) {
+  await runDbInit();
   console.log('Sign-in action initiated.');
-  await initializeDb();
+  
   const validation = SignInSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validation.success) {
@@ -143,8 +153,9 @@ export async function signInAction(prevState: any, formData: FormData) {
 }
 
 export async function signUpAction(prevState: any, formData: FormData) {
+    await runDbInit();
     console.log('Sign-up action initiated.');
-    await initializeDb();
+    
     const validation = SignUpSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validation.success) {
@@ -194,8 +205,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
 }
 
 export async function verifyOtpAction(prevState: any, formData: FormData) {
+    await runDbInit();
     console.log('OTP verification action initiated.');
-    await initializeDb();
+    
     const otp = formData.get('otp') as string;
     const validation = OTPSchema.safeParse(otp);
 
@@ -258,8 +270,9 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 }
 
 export async function forgotPasswordAction(prevState: any, formData: FormData) {
+    await runDbInit();
     console.log('Forgot password action initiated.');
-    await initializeDb();
+    
     const email = formData.get('email') as string;
     const validation = EmailSchema.safeParse(email);
 
@@ -300,8 +313,9 @@ export async function shuffleCommentsAction(
   prevState: ShuffleState,
   formData: FormData
 ): Promise<ShuffleState> {
+  await runDbInit();
   console.log('Shuffle comments action initiated.');
-  await initializeDb();
+  
   try {
     const comments = [
       formData.get('comment1') as string,
@@ -349,7 +363,7 @@ export async function logOutAction() {
 // --- YouTube API Actions ---
 
 async function getApiKeyForCurrentUser() {
-    await initializeDb();
+    
     const userId = await getUserIdFromSession();
     if (!userId) {
         throw new Error('User not authenticated.');
@@ -436,7 +450,7 @@ export async function getChannelVideos(channelId: string) {
 
 export async function getApiKeyAction() {
     try {
-        await initializeDb();
+        await runDbInit();
         const userId = await getUserIdFromSession();
         if (!userId) {
             console.warn('getApiKeyAction called without authenticated user.');
@@ -458,7 +472,7 @@ type UpdateApiKeyActionState = {
 }
 
 export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, formData: FormData): Promise<UpdateApiKeyActionState> {
-    await initializeDb();
+    await runDbInit();
     const apiKey = formData.get('apiKey') as string;
     const validation = ApiKeySchema.safeParse(apiKey);
 
