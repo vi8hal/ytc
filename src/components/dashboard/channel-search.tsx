@@ -2,17 +2,15 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Check, ChevronsUpDown, AlertCircle } from 'lucide-react';
+import { Check, Search, AlertCircle, Loader2 } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { searchChannels } from '@/lib/actions';
 import type { Channel } from './dashboard-client';
-import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface ChannelSearchProps {
@@ -22,12 +20,10 @@ interface ChannelSearchProps {
 }
 
 export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = false }: ChannelSearchProps) {
-  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   const debouncedSearch = useCallback(
     debounce(async (query: string) => {
@@ -54,17 +50,14 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
   );
 
   useEffect(() => {
-    // When the popover closes, if there's no selection, reset the search.
-    if (!open && !selectedChannel) {
-      setSearchQuery('');
-      setChannels([]);
-      setError(null);
-    }
-  }, [open, selectedChannel]);
-
-  useEffect(() => {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
+  
+  const handleSelectChannel = (channel: Channel) => {
+      onChannelSelect(channel);
+      setSearchQuery(channel.name);
+      setChannels([]);
+  }
 
   return (
     <Card className="shadow-lg">
@@ -79,68 +72,44 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
                 <AlertDescription>Please provide a valid YouTube API key in Step 1 to enable channel search.</AlertDescription>
             </Alert>
         ) : (
-            <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between"
-                >
-                {selectedChannel
-                    ? channels.find((channel) => channel.id === selectedChannel.id)?.name || selectedChannel.name
-                    : 'Select channel...'}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                <CommandInput 
-                    placeholder="Search for a channel (min. 3 chars)..." 
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
-                />
-                <CommandList>
-                    {isLoading && (
-                        <div className='p-2 space-y-2'>
-                            <Skeleton className="h-8 w-full" />
-                            <Skeleton className="h-8 w-full" />
-                            <Skeleton className="h-8 w-full" />
-                        </div>
-                    )}
-                    {error && <CommandEmpty>{error}</CommandEmpty>}
-                    {!isLoading && !error && !channels.length && searchQuery.length >= 3 && <CommandEmpty>No channel found.</CommandEmpty>}
-                    {!isLoading && !error && (
-                    <CommandGroup>
-                        {channels.map((channel) => (
-                        <CommandItem
-                            key={channel.id}
-                            value={channel.name}
-                            onSelect={(currentValue) => {
-                            const selected = channels.find(c => c.name.toLowerCase() === currentValue.toLowerCase());
-                            onChannelSelect(selected || null);
-                            setOpen(false);
-                            }}
-                        >
-                            <Check
-                            className={cn(
-                                'mr-2 h-4 w-4',
-                                selectedChannel?.id === channel.id ? 'opacity-100' : 'opacity-0'
-                            )}
-                            />
-                            {channel.name}
-                        </CommandItem>
-                        ))}
-                    </CommandGroup>
-                    )}
-                </CommandList>
-                </Command>
-            </PopoverContent>
-            </Popover>
+            <div className="relative">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search for a channel (min. 3 chars)..." 
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value)
+                            if (selectedChannel) {
+                                onChannelSelect(null);
+                            }
+                        }}
+                        className="pl-10"
+                    />
+                    {isLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
+                </div>
+
+                {(channels.length > 0 || error) && (
+                    <div className="absolute top-full z-10 mt-2 w-full rounded-md border bg-popover text-popover-foreground shadow-lg">
+                        <ul className="max-h-60 overflow-y-auto p-1">
+                            {error && <li className="p-2 text-sm text-destructive">{error}</li>}
+                            {!isLoading && !error && channels.length === 0 && searchQuery.length >=3 && <li className="p-2 text-sm text-muted-foreground">No channels found.</li>}
+                            {channels.map((channel) => (
+                                <li 
+                                    key={channel.id}
+                                    className="flex cursor-pointer items-center justify-between rounded-sm p-2 text-sm hover:bg-accent"
+                                    onClick={() => handleSelectChannel(channel)}
+                                >
+                                    <span>{channel.name}</span>
+                                    {selectedChannel?.id === channel.id && <Check className="h-4 w-4" />}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
         )}
       </CardContent>
     </Card>
   );
 }
-
-    
