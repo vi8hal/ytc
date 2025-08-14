@@ -11,12 +11,10 @@ import {
   createVerificationToken,
   verifyVerificationToken,
 } from './auth';
+import { db } from './db';
 import { shuffleComments } from '@/ai/flows/shuffle-comments';
 import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 
-
-// Mock user database
-const users: any = {};
 
 // --- Helper Functions ---
 
@@ -24,7 +22,7 @@ async function sendVerificationEmail(email: string, otp: string) {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
     port: Number(process.env.EMAIL_SERVER_PORT),
-    secure: false, // true for 465, false for other ports
+    secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
     auth: {
       user: process.env.EMAIL_SERVER_USER,
       pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -49,7 +47,6 @@ async function sendVerificationEmail(email: string, otp: string) {
     await transporter.sendMail(mailOptions);
   } catch (error) {
     console.error('Failed to send verification email:', error);
-    // In a real app, you might want to throw an error or handle this more gracefully
     throw new Error('Could not send verification email.');
   }
 }
@@ -60,30 +57,32 @@ export async function signInAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  const user = users[email];
+  const user = await db.user.findUnique({ where: { email } });
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return { error: 'Invalid email or password.' };
   }
 
   if (!user.verified) {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      user.otp = otp;
-      user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-      
-      try {
-        await sendVerificationEmail(email, otp);
-      } catch (e) {
-        return { error: 'Could not send verification email. Please try again.' };
-      }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      const verificationToken = await createVerificationToken({ email });
-      cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-      redirect('/verify-otp');
+    await db.user.update({
+      where: { email },
+      data: { otp, otpExpires },
+    });
+      
+    try {
+      await sendVerificationEmail(email, otp);
+    } catch (e) {
+      return { error: 'Could not send verification email. Please try again.' };
+    }
+
+    const verificationToken = await createVerificationToken({ email });
+    cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+    redirect('/verify-otp');
   }
 
-  const sessionToken = await createSessionToken({ email });
+  const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
   cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 
   redirect('/dashboard');
@@ -94,31 +93,31 @@ export async function signUpAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
-  if (users[email]) {
+  const existingUser = await db.user.findUnique({ where: { email } });
+  if (existingUser) {
     return { error: 'An account with this email already exists.' };
   }
 
   const hashedPassword = bcrypt.hashSync(password, 10);
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-  users[email] = { 
-      name, 
-      email, 
-      password: hashedPassword, 
-      verified: false, 
-      otp,
-      otpExpires: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
-  };
-  
   try {
     await sendVerificationEmail(email, otp);
   } catch(e) {
-    // If email fails, don't create the user
-    delete users[email];
     return { error: 'Could not send verification email. Please try again.' };
   }
+
+  await db.user.create({
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      verified: false,
+      otp,
+      otpExpires,
+    },
+  });
 
   const verificationToken = await createVerificationToken({ email });
   cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
@@ -130,15 +129,13 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
   const otp = formData.get('otp') as string;
   const token = cookies().get('verification_token')?.value;
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
   if (!token) {
     return { error: 'Verification session expired. Please sign up again.' };
   }
 
   try {
     const payload: any = await verifyVerificationToken(token);
-    const user = users[payload.email];
+    const user = await db.user.findUnique({ where: { email: payload.email } });
 
     if (!user) {
       return { error: 'User not found.' };
@@ -146,16 +143,21 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     if (user.otp !== otp) {
       return { error: 'Invalid OTP.' };
     }
-    if (new Date() > user.otpExpires) {
+    if (!user.otpExpires || new Date() > user.otpExpires) {
         return { error: 'OTP has expired. Please request a new one.' };
     }
 
-    user.verified = true;
-    user.otp = null;
-    user.otpExpires = null;
+    await db.user.update({
+      where: { email: user.email },
+      data: {
+        verified: true,
+        otp: null,
+        otpExpires: null,
+      },
+    });
 
     cookies().delete('verification_token');
-    const sessionToken = await createSessionToken({ email: user.email });
+    const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
     cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
 
   } catch (error) {
@@ -167,31 +169,28 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 
 export async function forgotPasswordAction(prevState: any, formData: FormData) {
     const email = formData.get('email') as string;
-    const user = users[email];
-    
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const user = await db.user.findUnique({ where: { email } });
 
     if (user) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        user.otp = otp;
-        user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
         
+        await db.user.update({
+            where: { email },
+            data: { otp, otpExpires }
+        });
+
         try {
-            // Re-using the verification email function for password reset
             await sendVerificationEmail(email, otp); 
             const verificationToken = await createVerificationToken({ email, isPasswordReset: true });
             cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-
         } catch (e) {
             // Don't expose that the email sending failed
         }
     }
 
-    // Always return the same message to prevent email enumeration attacks
     return { message: 'If an account with that email exists, an email with a reset code has been sent.' };
 }
-
-// GenAI action
 
 const shuffleActionSchema = z.object({
   comments: z.array(z.string()).min(4).max(4),
