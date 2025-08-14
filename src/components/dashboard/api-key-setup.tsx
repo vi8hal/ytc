@@ -51,14 +51,14 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
     }, [currentApiKey]);
 
     useEffect(() => {
-        if (state.message && !state.error && state.apiKey) {
+        if (state?.message && !state.error && state.apiKey) {
             toast({
                 title: 'Success!',
                 description: state.message,
                 variant: 'default',
             });
             onApiKeyUpdate(state.apiKey);
-        } else if (state.message && state.error) {
+        } else if (state?.message && state.error) {
             toast({
                 title: 'Error Saving API Key',
                 description: state.message,
@@ -110,7 +110,7 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
                         </div>
                     </div>
                     <SubmitButton disabled={!localApiKey || localApiKey === currentApiKey} />
-                     {state.message && (
+                     {state?.message && (
                         <Alert variant={state.error ? 'destructive' : 'default'}>
                            {state.error ?  <AlertCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                            <AlertTitle>{state.error ? 'Error' : 'Success'}</AlertTitle>
