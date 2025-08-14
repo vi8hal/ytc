@@ -45,7 +45,10 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
     const [apiKey, setApiKey] = useState(currentApiKey ?? '');
 
      useEffect(() => {
-        setApiKey(currentApiKey ?? '');
+        // This ensures that if the prop updates (e.g., after initial load), the local state is updated too.
+        if (currentApiKey !== null) {
+            setApiKey(currentApiKey);
+        }
     }, [currentApiKey]);
 
     useEffect(() => {
@@ -55,6 +58,7 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
                 description: state.message,
                 variant: state.error ? 'destructive' : 'default',
             });
+            // If the save was successful, call the parent callback
             if (!state.error && apiKey) {
                 onApiKeyUpdate(apiKey);
             }
