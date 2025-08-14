@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Mail } from 'lucide-react';
 import { useEffect } from 'react';
@@ -24,7 +24,7 @@ function SubmitButton() {
 }
 
 export default function ForgotPasswordPage() {
-  const [state, formAction] = useFormState(forgotPasswordAction, { message: null });
+  const [state, formAction] = useActionState(forgotPasswordAction, { message: null });
   const { toast } = useToast();
 
   useEffect(() => {

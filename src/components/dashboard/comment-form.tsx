@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -39,7 +39,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormProps) {
   const { toast } = useToast();
   const initialState = { data: null, error: null, message: null };
-  const [state, formAction] = useFormState(shuffleCommentsAction, initialState);
+  const [state, formAction] = useActionState(shuffleCommentsAction, initialState);
 
   useEffect(() => {
     if (state.message) {

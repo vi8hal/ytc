@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Hash } from 'lucide-react';
 
@@ -22,7 +22,7 @@ function SubmitButton() {
 }
 
 export default function VerifyOtpPage() {
-  const [state, formAction] = useFormState(verifyOtpAction, null);
+  const [state, formAction] = useActionState(verifyOtpAction, null);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

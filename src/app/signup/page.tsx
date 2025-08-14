@@ -1,6 +1,6 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useActionState, useFormStatus } from 'react';
 import Link from 'next/link';
 import { ArrowRight, KeyRound, Mail, User } from 'lucide-react';
 
@@ -22,7 +22,7 @@ function SubmitButton() {
 }
 
 export default function SignUpPage() {
-  const [state, formAction] = useFormState(signUpAction, null);
+  const [state, formAction] = useActionState(signUpAction, null);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
