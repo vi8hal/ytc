@@ -1,40 +1,117 @@
 'use server';
 
-import { shuffleComments } from '@/ai/flows/shuffle-comments';
-import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
+import {
+  createSessionToken,
+  createVerificationToken,
+  hashPassword,
+  sendOtpEmail,
+  verifyPassword,
+  verifyVerificationToken,
+} from './auth';
+import { shuffleComments } from '@/ai/flows/shuffle-comments';
+import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 
-// Mocked authentication and user actions
+// Mock user database
+const users: any = {};
 
 export async function signInAction(prevState: any, formData: FormData) {
-  // In a real app, you'd validate credentials against a database.
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log("User signed in (mocked)");
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  const user = users[email];
+  if (!user || !verifyPassword(password, user.password)) {
+    return { error: 'Invalid email or password.' };
+  }
+
+  if (!user.verified) {
+      return { error: "Account not verified. Please check your email for the OTP." };
+  }
+
+  const sessionToken = await createSessionToken({ email });
+  cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+
   redirect('/dashboard');
 }
 
 export async function signUpAction(prevState: any, formData: FormData) {
-  // In a real app, you'd create a new user in the database.
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log("User signed up (mocked)");
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  if (users[email]) {
+    return { error: 'An account with this email already exists.' };
+  }
+
+  const hashedPassword = hashPassword(password);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  users[email] = { name, email, password: hashedPassword, verified: false, otp };
+
+  try {
+    await sendOtpEmail(email, otp);
+    const verificationToken = await createVerificationToken({ email });
+    cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+  } catch (error) {
+    console.error('Email sending failed:', error);
+    return { error: 'Failed to send verification email.' };
+  }
+
   redirect('/verify-otp');
 }
 
 export async function verifyOtpAction(prevState: any, formData: FormData) {
-  // In a real app, you'd verify the OTP and activate the user account.
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log("OTP verified (mocked)");
+  const otp = formData.get('otp') as string;
+  const token = cookies().get('verification_token')?.value;
+
+  if (!token) {
+    return { error: 'Verification session expired. Please sign up again.' };
+  }
+
+  try {
+    const payload: any = await verifyVerificationToken(token);
+    const user = users[payload.email];
+
+    if (!user) {
+      return { error: 'User not found.' };
+    }
+    if (user.otp !== otp) {
+      return { error: 'Invalid OTP.' };
+    }
+
+    user.verified = true;
+    user.otp = null; // Clear OTP after successful verification
+
+    cookies().delete('verification_token');
+    const sessionToken = await createSessionToken({ email: user.email });
+    cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+
+  } catch (error) {
+    return { error: 'Invalid or expired verification session.' };
+  }
+
   redirect('/dashboard');
 }
 
 export async function forgotPasswordAction(prevState: any, formData: FormData) {
-  // In a real app, you'd send a password reset email.
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log("Password reset link sent (mocked)");
-  return { message: 'If an account with that email exists, a password reset link has been sent.' };
-}
+    const email = formData.get('email') as string;
+    const user = users[email];
 
+    if (user) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.otp = otp; // Store OTP for reset
+        try {
+            await sendOtpEmail(email, otp, 'Password Reset');
+        } catch (error) {
+            console.error('Password reset email sending failed:', error);
+            return { message: 'Failed to send reset email. Please try again later.' };
+        }
+    }
+    // Always return the same message to prevent email enumeration attacks
+    return { message: 'If an account with that email exists, a password reset link has been sent.' };
+}
 
 // GenAI action
 

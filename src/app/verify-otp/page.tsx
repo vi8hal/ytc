@@ -2,7 +2,6 @@
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import Link from 'next/link';
 import { ArrowRight, Hash } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { verifyOtpAction } from '@/lib/actions';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -23,7 +23,7 @@ function SubmitButton() {
 }
 
 export default function VerifyOtpPage() {
-  const [state, formAction] = useActionState(verifyOtpAction, null);
+  const [state, formAction] = useActionState(verifyOtpAction, { error: null });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -37,6 +37,11 @@ export default function VerifyOtpPage() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-4">
+            {state?.error && (
+                <Alert variant="destructive">
+                    <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="otp">Verification Code</Label>
               <div className="relative">

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { signUpAction } from '@/lib/actions';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -23,7 +24,7 @@ function SubmitButton() {
 }
 
 export default function SignUpPage() {
-  const [state, formAction] = useActionState(signUpAction, null);
+  const [state, formAction] = useActionState(signUpAction, { error: null });
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -37,6 +38,11 @@ export default function SignUpPage() {
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-4">
+            {state?.error && (
+                <Alert variant="destructive">
+                    <AlertDescription>{state.error}</AlertDescription>
+                </Alert>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
               <div className="relative">
