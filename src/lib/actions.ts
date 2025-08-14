@@ -3,23 +3,37 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
+
 import {
   createSessionToken,
   createVerificationToken,
-  hashPassword,
-  sendOtpEmail,
-  verifyPassword,
   verifyVerificationToken,
 } from './auth';
 import { shuffleComments } from '@/ai/flows/shuffle-comments';
 import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 
+
 // Mock user database
 const users: any = {};
+
+// Mock password verification
+function verifyPassword(password: string, hash: string): boolean {
+  // In a real app, use bcrypt.compareSync(password, hash);
+  // This is a mock, so we'll just compare the password to the stored "hash" (which is just the plain password for now)
+  return password === hash;
+}
+
+// Mock password hashing
+function hashPassword(password: string): string {
+  // In a real app, use bcrypt.hashSync(password, 10);
+  return password;
+}
 
 export async function signInAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   const user = users[email];
   if (!user || !verifyPassword(password, user.password)) {
@@ -27,6 +41,11 @@ export async function signInAction(prevState: any, formData: FormData) {
   }
 
   if (!user.verified) {
+      // For the mock, we can redirect to OTP or just let them in.
+      // Let's assume for now they still need to verify.
+      const verificationToken = await createVerificationToken({ email });
+      cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      redirect('/verify-otp');
       return { error: "Account not verified. Please check your email for the OTP." };
   }
 
@@ -41,30 +60,31 @@ export async function signUpAction(prevState: any, formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+
   if (users[email]) {
     return { error: 'An account with this email already exists.' };
   }
 
+  // Storing plain password in mock DB
   const hashedPassword = hashPassword(password);
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  console.log(`Mock OTP for ${email}: ${otp}`); // Log OTP to console for testing
 
   users[email] = { name, email, password: hashedPassword, verified: false, otp };
 
-  try {
-    await sendOtpEmail(email, otp);
-    const verificationToken = await createVerificationToken({ email });
-    cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-  } catch (error) {
-    console.error('Email sending failed:', error);
-    return { error: 'Failed to send verification email.' };
-  }
-
+  const verificationToken = await createVerificationToken({ email });
+  cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+  
   redirect('/verify-otp');
 }
 
 export async function verifyOtpAction(prevState: any, formData: FormData) {
   const otp = formData.get('otp') as string;
   const token = cookies().get('verification_token')?.value;
+
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   if (!token) {
     return { error: 'Verification session expired. Please sign up again.' };
@@ -98,17 +118,15 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 export async function forgotPasswordAction(prevState: any, formData: FormData) {
     const email = formData.get('email') as string;
     const user = users[email];
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     if (user) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         user.otp = otp; // Store OTP for reset
-        try {
-            await sendOtpEmail(email, otp, 'Password Reset');
-        } catch (error) {
-            console.error('Password reset email sending failed:', error);
-            return { message: 'Failed to send reset email. Please try again later.' };
-        }
+        console.log(`Password Reset OTP for ${email}: ${otp}`); // Log to console for testing
     }
+
     // Always return the same message to prevent email enumeration attacks
     return { message: 'If an account with that email exists, a password reset link has been sent.' };
 }
