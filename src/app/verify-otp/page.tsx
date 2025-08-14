@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { ArrowRight, Hash } from 'lucide-react';
+import { ArrowRight, Hash, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +11,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { verifyOtpAction } from '@/lib/actions';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Verifying...' : 'Verify Account'}
-      <ArrowRight className="ml-2 h-4 w-4" />
+      {pending ? (
+        <>
+          <Loader2 className="mr-2 animate-spin" />
+          Verifying...
+        </>
+      ) : (
+        <>
+          Verify Account
+          <ArrowRight className="ml-2" />
+        </>
+      )}
     </Button>
   );
 }
@@ -27,7 +37,7 @@ export default function VerifyOtpPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <Logo />
@@ -39,6 +49,7 @@ export default function VerifyOtpPage() {
           <form action={formAction} className="space-y-4">
             {state?.error && (
                 <Alert variant="destructive">
+                    <AlertTitle>Verification Failed</AlertTitle>
                     <AlertDescription>{state.error}</AlertDescription>
                 </Alert>
             )}

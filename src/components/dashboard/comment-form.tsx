@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useActionState } from 'react';
@@ -12,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Video } from './dashboard-client';
 import type { ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 import { Bot, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface CommentFormProps {
   selectedVideos: Video[];
@@ -56,9 +58,9 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
   }, [state, toast, onShuffleComplete]);
 
   return (
-    <Card>
+    <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline">Step 3: Add Your Comments</CardTitle>
+        <CardTitle className="font-headline text-xl">Step 3: Add Your Comments</CardTitle>
         <CardDescription>
           Enter up to 4 comments. The AI will randomly pick one to post on each selected video.
         </CardDescription>
@@ -82,7 +84,9 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
 
           <SubmitButton disabled={selectedVideos.length === 0} />
           {selectedVideos.length === 0 && (
-            <p className="text-sm text-center text-destructive">Please select at least one video.</p>
+            <Alert variant="destructive" className="text-center">
+                <AlertDescription>Please select at least one video.</AlertDescription>
+            </Alert>
           )}
         </form>
       </CardContent>

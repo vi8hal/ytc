@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -51,7 +52,7 @@ export function DashboardClient() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2 space-y-8">
         <ChannelSearch
             onChannelSelect={handleChannelSelect}
@@ -67,7 +68,7 @@ export function DashboardClient() {
           />
         )}
       </div>
-      <div className="lg:col-span-1 space-y-8">
+      <div className="lg:col-span-1 space-y-8 sticky top-24">
         <CommentForm 
             selectedVideos={selectedVideos}
             onShuffleComplete={handleShuffleComplete}

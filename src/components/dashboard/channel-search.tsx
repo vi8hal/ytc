@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -11,6 +12,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { searchChannels } from '@/lib/actions';
 import type { Channel } from './dashboard-client';
+import { Skeleton } from '../ui/skeleton';
 
 interface ChannelSearchProps {
   selectedChannel: Channel | null;
@@ -25,7 +27,7 @@ export function ChannelSearch({ selectedChannel, onChannelSelect }: ChannelSearc
 
   const debouncedSearch = useCallback(
     debounce(async (query: string) => {
-      if (query.length < 2) {
+      if (query.length < 3) {
         setChannels([]);
         setIsLoading(false);
         return;
@@ -49,10 +51,10 @@ export function ChannelSearch({ selectedChannel, onChannelSelect }: ChannelSearc
   }, [searchQuery, debouncedSearch]);
 
   return (
-    <Card>
+    <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline">Step 1: Select a Channel</CardTitle>
-        <CardDescription>Search for and choose the YouTube channel you want to target.</CardDescription>
+        <CardTitle className="font-headline text-xl">Step 1: Select a Channel</CardTitle>
+        <CardDescription>Search for the YouTube channel you want to target.</CardDescription>
       </CardHeader>
       <CardContent>
         <Popover open={open} onOpenChange={setOpen}>
@@ -69,17 +71,22 @@ export function ChannelSearch({ selectedChannel, onChannelSelect }: ChannelSearc
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
             <Command>
               <CommandInput 
-                placeholder="Search for a channel..." 
+                placeholder="Search for a channel (min. 3 chars)..." 
                 value={searchQuery}
                 onValueChange={setSearchQuery}
-                isLoading={isLoading}
               />
               <CommandList>
-                {isLoading && <CommandEmpty>Loading...</CommandEmpty>}
-                {!isLoading && !channels.length && <CommandEmpty>No channel found.</CommandEmpty>}
+                {isLoading && (
+                    <div className='p-2 space-y-2'>
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                    </div>
+                )}
+                {!isLoading && !channels.length && searchQuery.length >= 3 && <CommandEmpty>No channel found.</CommandEmpty>}
                 {!isLoading && (
                   <CommandGroup>
                     {channels.map((channel) => (

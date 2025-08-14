@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,14 +35,14 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
   }
 
   return (
-    <Card>
+    <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline">Step 2: Select Videos</CardTitle>
+        <CardTitle className="font-headline text-xl">Step 2: Select Videos</CardTitle>
         <CardDescription>Choose the videos you want to shuffle comments on.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
+          <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors border">
             <Checkbox
               id="select-all"
               checked={isAllSelected}
@@ -50,27 +51,27 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
               data-state={isSomeSelected ? 'indeterminate' : (isAllSelected ? 'checked' : 'unchecked')}
               disabled={isLoading || videos.length === 0}
             />
-            <Label htmlFor="select-all" className="font-semibold flex-1 cursor-pointer">
+            <Label htmlFor="select-all" className="font-semibold flex-1 cursor-pointer text-sm">
               Select all videos ({selectedVideos.length} / {videos.length})
             </Label>
           </div>
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-2 border rounded-md p-2">
             {isLoading ? (
-                [...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full rounded-md" />)
+                [...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)
             ) : videos.length === 0 ? (
-                <p className="text-center text-muted-foreground text-sm py-4">No videos found for this channel.</p>
+                <p className="text-center text-muted-foreground text-sm py-8">No videos found for this channel.</p>
             ) : (
                 videos.map((video) => (
                 <div
                     key={video.id}
-                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors"
+                    className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
                 >
                     <Checkbox
                     id={video.id}
                     checked={selectedVideos.some((v) => v.id === video.id)}
                     onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
                     />
-                    <Label htmlFor={video.id} className="flex-1 cursor-pointer">
+                    <Label htmlFor={video.id} className="flex-1 cursor-pointer text-sm font-normal">
                     {video.title}
                     </Label>
                 </div>

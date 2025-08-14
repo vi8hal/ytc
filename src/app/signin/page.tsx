@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
-import { ArrowRight, KeyRound, Mail } from 'lucide-react';
+import { ArrowRight, KeyRound, Loader2, Mail } from 'lucide-react';
+import { GoogleIcon } from '@/components/icons/google';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,14 +13,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { signInAction } from '@/lib/actions';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Signing In...' : 'Sign In'}
-      <ArrowRight className="ml-2 h-4 w-4" />
+       {pending ? (
+        <>
+          <Loader2 className="mr-2 animate-spin" />
+          Signing In...
+        </>
+      ) : (
+        <>
+          Sign In with Email
+          <ArrowRight className="ml-2" />
+        </>
+      )}
     </Button>
   );
 }
@@ -28,23 +40,36 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <Logo />
           </div>
           <CardTitle className="font-headline text-2xl">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your account.</CardDescription>
+          <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {state?.error && (
+              <Alert variant="destructive">
+                  <AlertTitle>Sign-In Failed</AlertTitle>
+                  <AlertDescription>{state.error}</AlertDescription>
+              </Alert>
+          )}
+
+          <Button variant="outline" className="w-full">
+            <GoogleIcon className="mr-2 size-5" />
+            Sign In with Google
+          </Button>
+
+          <div className="flex items-center gap-4">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+          </div>
+
           <form action={formAction} className="space-y-4">
-            {state?.error && (
-                <Alert variant="destructive">
-                    <AlertDescription>{state.error}</AlertDescription>
-                </Alert>
-            )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input id="email" name="email" type="email" placeholder="name@example.com" required className="pl-10" />
