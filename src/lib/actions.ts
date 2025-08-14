@@ -40,7 +40,7 @@ const OTPSchema = z.string().length(6, { message: 'OTP must be 6 digits.' });
 
 const ShuffleActionSchema = z.object({
   comments: z.array(z.string().min(1, { message: "Comments cannot be empty."})).length(4, { message: "You must provide exactly 4 comments."}),
-  videoIds: z.array(z.string().min(1)).min(1, { message: "You must select at least one video." }),
+  videoIds: z.array(z.string().min(1)).min(1, { message: "You must select at least one video." }).max(10, { message: "You can select a maximum of 10 videos."}),
 });
 
 // --- Helper Functions ---
@@ -355,7 +355,7 @@ async function getApiKeyForCurrentUser() {
         throw new Error('User not authenticated.');
     }
     const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
-    const apiKey = result.rows[0]?.youtubeApiKey;
+    const apiKey = result.rows[0]?.youtubeapikey;
     if (!apiKey) {
         throw new Error('YouTube API Key not configured. Please add it in settings.');
     }
@@ -433,7 +433,7 @@ export async function getApiKeyAction() {
             return { apiKey: null, error: 'User not authenticated' };
         }
         const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
-        const apiKey = result.rows[0]?.youtubeApiKey || null;
+        const apiKey = result.rows[0]?.youtubeapikey || null;
         console.log(`API key for user ${userId} is ${apiKey ? 'set' : 'not set'}.`);
         return { apiKey: apiKey, error: null };
     } catch (error) {
@@ -470,5 +470,3 @@ export async function updateApiKeyAction(prevState: any, formData: FormData) {
         return { error: true, message: 'An unexpected server error occurred while saving the key.' };
     }
 }
-
-    

@@ -9,6 +9,8 @@ import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 
+const MAX_VIDEOS = 10;
+
 interface VideoSelectionProps {
   videos: Video[];
   isLoading: boolean;
@@ -21,18 +23,21 @@ interface VideoSelectionProps {
 export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVideosChange, disabled = false, error = null }: VideoSelectionProps) {
   const handleSelectVideo = (video: Video, checked: boolean) => {
     if (checked) {
-      onSelectedVideosChange([...selectedVideos, video]);
+      if (selectedVideos.length < MAX_VIDEOS) {
+        onSelectedVideosChange([...selectedVideos, video]);
+      }
     } else {
       onSelectedVideosChange(selectedVideos.filter((v) => v.id !== video.id));
     }
   };
 
-  const isAllSelected = !isLoading && videos.length > 0 && selectedVideos.length === videos.length;
-  const isSomeSelected = selectedVideos.length > 0 && selectedVideos.length < videos.length;
+  const isAllSelected = !isLoading && videos.length > 0 && selectedVideos.length === Math.min(videos.length, MAX_VIDEOS);
+  const isSomeSelected = selectedVideos.length > 0 && !isAllSelected;
+  const atVideoLimit = selectedVideos.length >= MAX_VIDEOS;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      onSelectedVideosChange(videos);
+      onSelectedVideosChange(videos.slice(0, MAX_VIDEOS));
     } else {
       onSelectedVideosChange([]);
     }
@@ -83,25 +88,39 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
                 disabled={isLoading || videos.length === 0}
               />
               <Label htmlFor="select-all" className="font-semibold flex-1 cursor-pointer text-sm">
-                Select all videos ({selectedVideos.length} / {videos.length})
+                Select up to {MAX_VIDEOS} videos ({selectedVideos.length} / {MAX_VIDEOS})
               </Label>
             </div>
+            {atVideoLimit && (
+              <Alert variant="default" className="border-primary/50">
+                  <AlertCircle className="h-4 w-4 text-primary" />
+                  <AlertDescription>You have reached the maximum of {MAX_VIDEOS} videos for this campaign.</AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-2 max-h-72 overflow-y-auto pr-2 border rounded-md p-2">
-                {videos.map((video) => (
-                <div
-                    key={video.id}
-                    className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors"
-                >
-                    <Checkbox
-                    id={video.id}
-                    checked={selectedVideos.some((v) => v.id === video.id)}
-                    onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
-                    />
-                    <Label htmlFor={video.id} className="flex-1 cursor-pointer text-sm font-normal">
-                    {video.title}
-                    </Label>
-                </div>
-                ))}
+                {videos.map((video) => {
+                  const isChecked = selectedVideos.some((v) => v.id === video.id);
+                  return (
+                    <div
+                        key={video.id}
+                        className={cn("flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors", {
+                           'opacity-50 cursor-not-allowed': atVideoLimit && !isChecked,
+                        })}
+                    >
+                        <Checkbox
+                        id={video.id}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
+                        disabled={atVideoLimit && !isChecked}
+                        />
+                        <Label htmlFor={video.id} className={cn("flex-1 cursor-pointer text-sm font-normal", {
+                           'cursor-not-allowed': atVideoLimit && !isChecked,
+                        })}>
+                        {video.title}
+                        </Label>
+                    </div>
+                  )
+                })}
             </div>
           </div>
     );
@@ -111,7 +130,7 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-xl">Step 3: Select Videos</CardTitle>
-        <CardDescription>Choose the videos you want the AI to comment on.</CardDescription>
+        <CardDescription>Choose the videos you want the AI to comment on (up to a maximum of 10).</CardDescription>
       </CardHeader>
       <CardContent>
         {renderContent()}
@@ -119,5 +138,3 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
     </Card>
   );
 }
-
-    
