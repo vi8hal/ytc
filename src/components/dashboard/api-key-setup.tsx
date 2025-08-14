@@ -19,10 +19,10 @@ interface ApiKeySetupProps {
     isLoading: boolean;
 }
 
-function SubmitButton() {
+function SubmitButton({ disabled }: { disabled: boolean }) {
     const { pending } = useFormStatus();
     return (
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={disabled || pending}>
             {pending ? (
                 <>
                     <Loader2 className="mr-2 animate-spin" />
@@ -42,10 +42,10 @@ function SubmitButton() {
 export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKeySetupProps) {
     const { toast } = useToast();
     const [state, formAction] = useActionState(updateApiKeyAction, { message: null, error: null });
-    const [apiKey, setApiKey] = useState(currentApiKey);
+    const [apiKey, setApiKey] = useState(currentApiKey ?? '');
 
      useEffect(() => {
-        setApiKey(currentApiKey);
+        setApiKey(currentApiKey ?? '');
     }, [currentApiKey]);
 
     useEffect(() => {
@@ -95,14 +95,14 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
                                 name="apiKey"
                                 type="password"
                                 placeholder="Enter your YouTube Data API key"
-                                value={apiKey ?? ''}
+                                value={apiKey}
                                 onChange={(e) => setApiKey(e.target.value)}
                                 required
                                 className="pl-10"
                             />
                         </div>
                     </div>
-                    <SubmitButton />
+                    <SubmitButton disabled={!apiKey || apiKey === currentApiKey} />
                 </form>
                 
                 <Alert>
