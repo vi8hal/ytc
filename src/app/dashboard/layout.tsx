@@ -62,7 +62,7 @@ export default function DashboardLayout({
                 </p>
               </div>
               <form action="/signin">
-                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" type="submit">
                     <LogOut className="h-4 w-4" />
                 </Button>
               </form>
