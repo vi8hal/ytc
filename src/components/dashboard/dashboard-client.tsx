@@ -27,7 +27,7 @@ export function DashboardClient() {
     async function fetchApiKey() {
       try {
         const result = await getApiKeyAction();
-        if (result.apiKey) {
+        if (result && result.apiKey) {
             setApiKey(result.apiKey);
         }
       } catch (error) {
