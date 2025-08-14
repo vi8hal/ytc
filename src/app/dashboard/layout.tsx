@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {
   SidebarProvider,
@@ -31,7 +32,7 @@ export default function DashboardLayout({
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive>
+                <SidebarMenuButton asChild>
                   <Link href="/dashboard">
                     <LayoutDashboard />
                     Dashboard
@@ -40,7 +41,7 @@ export default function DashboardLayout({
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="#">
+                  <Link href="/dashboard/settings">
                     <Settings />
                     Settings
                   </Link>

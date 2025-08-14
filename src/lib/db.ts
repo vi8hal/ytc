@@ -1,3 +1,4 @@
+
 import { sql } from '@vercel/postgres';
 import { db as vercelDb } from '@vercel/postgres';
 
@@ -8,10 +9,11 @@ export const db = {
 };
 
 export async function initializeDb() {
-    console.log('Checking for users table...');
+    console.log('Checking for database tables...');
     const client = await db.getClient();
     try {
-        const tableExists = await client.query(`
+        // Create users table if it doesn't exist
+        const usersTableExists = await client.query(`
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
                 WHERE table_schema = 'public' 
@@ -19,7 +21,7 @@ export async function initializeDb() {
             );
         `);
 
-        if (!tableExists.rows[0].exists) {
+        if (!usersTableExists.rows[0].exists) {
             console.log('Users table not found. Creating it...');
             await client.query(`
                 CREATE TABLE users (
@@ -36,6 +38,31 @@ export async function initializeDb() {
         } else {
             console.log('Users table already exists.');
         }
+
+        // Create user_settings table if it doesn't exist
+        const settingsTableExists = await client.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'user_settings'
+            );
+        `);
+
+        if (!settingsTableExists.rows[0].exists) {
+            console.log('User settings table not found. Creating it...');
+            await client.query(`
+                CREATE TABLE user_settings (
+                    id SERIAL PRIMARY KEY,
+                    "userId" INTEGER UNIQUE NOT NULL,
+                    "youtubeApiKey" VARCHAR(255),
+                    FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+                );
+            `);
+            console.log('User settings table created successfully.');
+        } else {
+            console.log('User settings table already exists.');
+        }
+
     } catch (error) {
         console.error('Error during database initialization:', error);
         throw new Error('Could not initialize database.');

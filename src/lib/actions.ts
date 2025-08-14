@@ -11,6 +11,7 @@ import { google } from 'googleapis';
 import {
   createSessionToken,
   createVerificationToken,
+  verifySessionToken,
   verifyVerificationToken,
 } from './auth';
 import { db, initializeDb } from './db';
@@ -22,6 +23,7 @@ import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shu
 
 const EmailSchema = z.string().email({ message: 'Invalid email address.' });
 const PasswordSchema = z.string().min(8, { message: 'Password must be at least 8 characters long.' });
+const ApiKeySchema = z.string().min(1, { message: 'API Key cannot be empty.' });
 
 const SignInSchema = z.object({
   email: EmailSchema,
@@ -47,7 +49,7 @@ async function sendVerificationEmail(email: string, otp: string) {
   console.log(`Attempting to send verification email to: ${email}`);
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
-    port: Number(process.env.EMAIL_SERVER_PORT),
+    port: Number(process.env.EMAIL_SERVER_port) || 587,
     secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
     auth: {
       user: process.env.EMAIL_SERVER_USER,
@@ -84,6 +86,13 @@ async function generateAndSaveOtp(email: string) {
   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
   await db.query`UPDATE users SET otp = ${otp}, "otpExpires" = ${otpExpires} WHERE email = ${email}`;
   return otp;
+}
+
+async function getUserIdFromSession() {
+    const sessionToken = cookies().get('session_token')?.value;
+    if (!sessionToken) return null;
+    const payload = await verifySessionToken(sessionToken);
+    return payload?.userId as number | null;
 }
 
 
@@ -125,7 +134,7 @@ export async function signInAction(prevState: any, formData: FormData) {
     cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
 
   } catch (error) {
-    if ((error as any)?.name === 'Redirect') throw error;
+    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
     console.error('An unexpected error occurred during sign-in:', error);
     return { error: 'An unexpected server error occurred. Please try again.' };
   }
@@ -159,11 +168,17 @@ export async function signUpAction(prevState: any, formData: FormData) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-        await db.query`
+        const newUserResult = await db.query`
             INSERT INTO users (name, email, password, verified, otp, "otpExpires")
             VALUES (${name}, ${email}, ${hashedPassword}, ${false}, ${otp}, ${otpExpires})
+            RETURNING id
         `;
-        console.log(`New user created for email: ${email}`);
+        const newUserId = newUserResult.rows[0].id;
+
+        await db.query`
+            INSERT INTO user_settings ("userId") VALUES (${newUserId});
+        `;
+        console.log(`New user and settings created for email: ${email}`);
 
         await sendVerificationEmail(email, otp);
         
@@ -171,7 +186,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
     
     } catch (error) {
-        if ((error as any)?.name === 'Redirect') throw error;
+        if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during sign-up:', error);
         return { error: (error as Error).message || 'An unexpected server error occurred.' };
     }
@@ -194,21 +209,23 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         let user: any;
 
         if (token) {
-            console.log('Found verification token cookie.');
-            const payload: any = await verifyVerificationToken(token);
-            const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
-            user = result.rows[0];
+            try {
+                const payload: any = await verifyVerificationToken(token);
+                const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
+                user = result.rows[0];
+            } catch (e) {
+                console.warn('Verification token was present but invalid:', e);
+            }
         }
 
-        // Fallback for cases where the cookie might be missing
         if (!user) {
             console.warn('Verification token not found or invalid, trying OTP directly.');
             const result = await db.query`SELECT * FROM users WHERE otp = ${otp} AND "otpExpires" > NOW()`;
             user = result.rows[0];
-            if (!user) {
-                console.warn(`No user found for OTP: ${otp} or OTP has expired.`);
-                return { error: 'Invalid or expired OTP. Please sign in again to get a new code.' };
-            }
+        }
+        
+        if (!user) {
+             return { error: 'Invalid or expired OTP. Please sign in again to get a new code.' };
         }
         
         if (user.otp !== otp) {
@@ -216,7 +233,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
           return { error: 'The entered code is incorrect.' };
         }
 
-        if (!user.otpExpires || new Date() > user.otpExpires) {
+        if (!user.otpExpires || new Date() > new Date(user.otpExpires)) {
           console.warn(`Expired OTP used for user ${user.email}.`);
           return { error: 'This OTP has expired. Please request a new one.' };
         }
@@ -233,7 +250,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
 
     } catch (error) {
-        if ((error as any)?.name === 'Redirect') throw error;
+        if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during OTP verification:', error);
         return { error: 'An unexpected server error occurred.' };
     }
@@ -268,10 +285,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
         }
     } catch(e) {
         console.error("Error in forgot password action:", e);
-        // Do not expose specific errors to the user to prevent email enumeration attacks
     }
-
-    // Always return a generic success message
     return { error: null, message: 'If an account with that email exists, a reset code has been sent.' };
 }
 
@@ -293,7 +307,7 @@ export async function shuffleCommentsAction(
       formData.get('comment3') as string,
       formData.get('comment4') as string,
     ];
-    const videoIds = (formData.get('videoIds') as string).split(',').filter(id => id); // Filter out empty strings
+    const videoIds = (formData.get('videoIds') as string).split(',').filter(id => id);
 
     const validatedData = ShuffleActionSchema.safeParse({ comments, videoIds });
 
@@ -326,22 +340,26 @@ export async function shuffleCommentsAction(
 
 // --- YouTube API Actions ---
 
-const youtube = google.youtube({
-  version: 'v3',
-  auth: process.env.YOUTUBE_API_KEY,
-});
+async function getApiKeyForCurrentUser() {
+    const userId = await getUserIdFromSession();
+    if (!userId) {
+        throw new Error('User not authenticated.');
+    }
+    const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
+    const apiKey = result.rows[0]?.youtubeApiKey;
+    if (!apiKey) {
+        throw new Error('YouTube API Key not configured. Please add it in settings.');
+    }
+    return apiKey;
+}
 
 export async function searchChannels(query: string) {
   if (!query) return [];
-  if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
-    console.warn("YouTube API key is not configured. Returning empty array.");
-    // This is a user-facing error, so we should consider how to display it.
-    // For now, returning an empty array is safe.
-    return [];
-  }
-
-  console.log(`Searching for YouTube channels with query: "${query}"`);
   try {
+    const apiKey = await getApiKeyForCurrentUser();
+    const youtube = google.youtube({ version: 'v3', auth: apiKey });
+
+    console.log(`Searching for YouTube channels with query: "${query}"`);
     const response = await youtube.search.list({
       part: ['snippet'],
       q: query,
@@ -359,21 +377,18 @@ export async function searchChannels(query: string) {
 
   } catch (error) {
     console.error('Error searching YouTube channels:', error);
-    // It's better to throw the error or return an object indicating failure
-    // so the client can handle it, e.g., by showing a toast notification.
-    return [];
+    // Let the client handle the error.
+    throw error;
   }
 }
 
 export async function getChannelVideos(channelId: string) {
   if (!channelId) return [];
-  if (!process.env.YOUTUBE_API_KEY || process.env.YOUTUBE_API_KEY === 'YOUR_YOUTUBE_API_KEY_HERE') {
-    console.warn("YouTube API key is not configured. Returning empty array.");
-    return [];
-  }
-
-  console.log(`Fetching videos for channel ID: ${channelId}`);
   try {
+    const apiKey = await getApiKeyForCurrentUser();
+    const youtube = google.youtube({ version: 'v3', auth: apiKey });
+
+    console.log(`Fetching videos for channel ID: ${channelId}`);
     const response = await youtube.search.list({
       part: ['snippet'],
       channelId: channelId,
@@ -391,6 +406,48 @@ export async function getChannelVideos(channelId: string) {
     return videos;
   } catch (error) {
     console.error(`Error fetching videos for channel ${channelId}:`, error);
-    return [];
+    throw error;
   }
+}
+
+
+// --- User Settings Actions ---
+
+export async function getApiKeyAction() {
+    try {
+        const userId = await getUserIdFromSession();
+        if (!userId) {
+            return { apiKey: null, error: 'User not authenticated' };
+        }
+        const apiKey = await getApiKeyForCurrentUser().catch(() => null);
+        return { apiKey: apiKey, error: null };
+    } catch (error) {
+        console.error("Error getting API key:", error);
+        return { apiKey: null, error: 'Failed to retrieve API key.' };
+    }
+}
+
+export async function updateApiKeyAction(prevState: any, formData: FormData) {
+    const apiKey = formData.get('apiKey') as string;
+    const validation = ApiKeySchema.safeParse(apiKey);
+
+    if (!validation.success) {
+        return { error: true, message: validation.error.flatten().formErrors[0] };
+    }
+    
+    try {
+        const userId = await getUserIdFromSession();
+        if (!userId) {
+            return { error: true, message: 'Authentication failed.' };
+        }
+
+        await db.query`
+            UPDATE user_settings SET "youtubeApiKey" = ${apiKey} WHERE "userId" = ${userId}
+        `;
+
+        return { error: null, message: 'API Key updated successfully.' };
+    } catch(e) {
+        console.error("Error in updateApiKeyAction:", e);
+        return { error: true, message: 'An unexpected error occurred.' };
+    }
 }
