@@ -16,6 +16,7 @@ import { Logo } from "@/components/logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Settings, LogOut, PanelLeft } from "lucide-react"
+import { logOutAction } from "@/lib/actions";
 
 export default function DashboardLayout({
   children,
@@ -61,8 +62,8 @@ export default function DashboardLayout({
                   user@example.com
                 </p>
               </div>
-              <form action="/signin">
-                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" type="submit">
+              <form action={logOutAction}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" type="submit" title="Log Out">
                     <LogOut className="h-4 w-4" />
                 </Button>
               </form>

@@ -338,6 +338,12 @@ export async function shuffleCommentsAction(
   }
 }
 
+export async function logOutAction() {
+    console.log('Logout action initiated.');
+    cookies().delete('session_token');
+    redirect('/signin');
+}
+
 
 // --- YouTube API Actions ---
 
