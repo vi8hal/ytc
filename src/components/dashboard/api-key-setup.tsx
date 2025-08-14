@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useActionState, useEffect, useState, useTransition } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { KeyRound, Loader2, Save, Terminal } from 'lucide-react';
+import { KeyRound, Loader2, Save, Terminal, AlertCircle, CheckCircle } from 'lucide-react';
 import { updateApiKeyAction } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,21 +45,19 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
     const [apiKey, setApiKey] = useState(currentApiKey ?? '');
 
      useEffect(() => {
-        // This ensures that if the prop updates (e.g., after initial load), the local state is updated too.
         if (currentApiKey !== null) {
             setApiKey(currentApiKey);
         }
     }, [currentApiKey]);
 
     useEffect(() => {
-        if (state?.message) {
-            toast({
-                title: state.error ? 'An error occurred' : 'Success!',
+        if (state?.message && !state.error) {
+             toast({
+                title: 'Success!',
                 description: state.message,
-                variant: state.error ? 'destructive' : 'default',
+                variant: 'default',
             });
-            // If the save was successful, call the parent callback
-            if (!state.error && apiKey) {
+            if (apiKey) {
                 onApiKeyUpdate(apiKey);
             }
         }
@@ -107,6 +105,15 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
                         </div>
                     </div>
                     <SubmitButton disabled={!apiKey || apiKey === currentApiKey} />
+                     {state?.message && (
+                        <Alert variant={state.error ? 'destructive' : 'default'}>
+                           {state.error ?  <AlertCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                           <AlertTitle>{state.error ? 'Error' : 'Success'}</AlertTitle>
+                           <AlertDescription>
+                              {state.message}
+                           </AlertDescription>
+                        </Alert>
+                    )}
                 </form>
                 
                 <Alert>
@@ -125,5 +132,3 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
         </Card>
     );
 }
-
-    
