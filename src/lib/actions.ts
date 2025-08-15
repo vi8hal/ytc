@@ -156,7 +156,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
         console.warn('Sign-up validation failed:', errors);
-        const errorMessage = errors.name?.[0] || errors.email?.[0] || errors.password?.[0] || 'Invalid input.';
+        const errorMessage = Object.values(errors).flat()[0] || 'Invalid input.';
         return { error: errorMessage };
     }
 
