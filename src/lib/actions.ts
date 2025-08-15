@@ -175,6 +175,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         `;
         const newUserId = newUserResult.rows[0].id;
 
+        // Ensure user_settings row is created on sign up
         await db.query`
             INSERT INTO user_settings ("userId") VALUES (${newUserId});
         `;
@@ -482,6 +483,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
 }
 
 export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, formData: FormData): Promise<UpdateApiKeyActionState> {
+    await initializeDb();
     try {
         const apiKey = formData.get('apiKey') as string;
         const validation = ApiKeySchema.safeParse(apiKey);
@@ -506,7 +508,10 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
         
         console.log(`Updating API key for user ${userId}...`);
         await db.query`
-            UPDATE user_settings SET "youtubeApiKey" = ${apiKey} WHERE "userId" = ${userId}
+            INSERT INTO user_settings ("userId", "youtubeApiKey")
+            VALUES (${userId}, ${apiKey})
+            ON CONFLICT ("userId")
+            DO UPDATE SET "youtubeApiKey" = EXCLUDED."youtubeApiKey";
         `;
         console.log(`API key for user ${userId} updated successfully.`);
         return { error: false, message: 'API Key has been successfully validated and saved.', apiKey: apiKey };
@@ -517,3 +522,5 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
         return { error: true, message: errorMessage };
     }
 }
+
+    
