@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
 import { ChannelSearch } from './channel-search';
 import { VideoSelection } from './video-selection';
@@ -26,26 +26,26 @@ export function DashboardClient() {
   const [selectedVideos, setSelectedVideos] = useState<Video[]>([]);
   const [shuffleResults, setShuffleResults] = useState<ShuffleCommentsOutput['results'] | null>(null);
 
-  useEffect(() => {
-    async function fetchApiKey() {
-      setIsApiKeyLoading(true);
-      try {
-        const result = await getApiKeyAction();
-        if (result?.apiKey) {
-            setApiKey(result.apiKey);
-        } else if (result?.error) {
-            // Do not toast here as it can be confusing for new users without a key yet.
-            console.log("No API key found or error fetching it:", result.error);
-        }
-      } catch (error) {
-        console.error("Failed to fetch API key", error);
-        toast({ title: 'Error', description: 'An unexpected error occurred while fetching your API key.', variant: 'destructive' });
-      } finally {
-        setIsApiKeyLoading(false);
+  const fetchApiKey = useCallback(async () => {
+    setIsApiKeyLoading(true);
+    try {
+      const result = await getApiKeyAction();
+      if (result?.apiKey) {
+          setApiKey(result.apiKey);
+      } else if (result?.error) {
+          console.log("No API key found or error fetching it:", result.error);
       }
+    } catch (error) {
+      console.error("Failed to fetch API key", error);
+      toast({ title: 'Error', description: 'An unexpected error occurred while fetching your API key.', variant: 'destructive' });
+    } finally {
+      setIsApiKeyLoading(false);
     }
-    fetchApiKey();
   }, [toast]);
+
+  useEffect(() => {
+    fetchApiKey();
+  }, [fetchApiKey]);
 
 
   useEffect(() => {
