@@ -458,6 +458,7 @@ export async function getChannelVideos(channelId: string) {
 // --- User Settings Actions ---
 
 export async function getApiKeyAction(): Promise<{ apiKey: string | null, error: string | null }> {
+    await initializeDb();
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
@@ -502,6 +503,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
 }
 
 export async function updateApiKeyAction(prevState: any, formData: FormData): Promise<UpdateApiKeyActionState> {
+    await initializeDb();
     const userId = await getUserIdFromSession();
     if (!userId) {
         console.error("Update API Key failed: User not authenticated.");
