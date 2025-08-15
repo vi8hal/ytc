@@ -72,5 +72,3 @@ export const config = {
   // Match all routes except for static assets and API routes
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
-
-    

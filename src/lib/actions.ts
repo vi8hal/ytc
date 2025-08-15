@@ -162,11 +162,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
     await initializeDb();
     console.log('Sign-up action initiated.');
 
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-
-    const validation = SignUpSchema.safeParse({ name, email, password });
+    const rawData = Object.fromEntries(formData.entries());
+    const validation = SignUpSchema.safeParse(rawData);
 
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
@@ -174,6 +171,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
         const errorMessage = Object.values(errors).flat()[0] || 'Invalid input.';
         return { error: errorMessage };
     }
+    
+    const { name, email, password } = validation.data;
 
     const client = await db.getClient();
 
@@ -614,5 +613,3 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
         return { error: true, message: errorMessage };
     }
 }
-
-    
