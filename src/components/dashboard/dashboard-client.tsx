@@ -12,14 +12,14 @@ import { getChannelVideos, getApiKeyAction } from '@/lib/actions';
 import { ApiKeySetup } from './api-key-setup';
 import { useToast } from '@/hooks/use-toast';
 
-export type Video = { id: string; title: string };
+export type Video = { id: string; title: string; channelId: string; channelTitle: string; };
 export type Channel = { id: string; name: string };
 
 export function DashboardClient() {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [isApiKeyLoading, setIsApiKeyLoading] = useState(true);
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [selectedChannels, setSelectedChannels] = useState<Channel[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export function DashboardClient() {
 
   useEffect(() => {
     const fetchVideos = async () => {
-      if (!selectedChannel || !apiKey) {
+      if (selectedChannels.length === 0 || !apiKey) {
         setVideos([]);
         return;
       }
@@ -58,8 +58,19 @@ export function DashboardClient() {
       setVideos([]);
       setSelectedVideos([]);
       try {
-        const channelVideos = await getChannelVideos(selectedChannel.id);
-        setVideos(channelVideos);
+        const videoPromises = selectedChannels.map(channel => getChannelVideos(channel.id));
+        const allChannelVideos = await Promise.all(videoPromises);
+        
+        const videosWithChannelInfo = allChannelVideos.flatMap((channelVideos, index) => {
+            const channel = selectedChannels[index];
+            return channelVideos.map(video => ({
+                ...video,
+                channelId: channel.id,
+                channelTitle: channel.name,
+            }))
+        });
+
+        setVideos(videosWithChannelInfo);
       } catch (error: any) {
         console.error("Failed to fetch videos:", error);
         setVideoError(error.message || 'An unknown error occurred.');
@@ -70,10 +81,10 @@ export function DashboardClient() {
     };
 
     fetchVideos();
-  }, [selectedChannel, apiKey]);
+  }, [selectedChannels, apiKey]);
 
-  const handleChannelSelect = (channel: Channel | null) => {
-    setSelectedChannel(channel);
+  const handleSetChannels = (channels: Channel[]) => {
+    setSelectedChannels(channels);
     // Reset downstream state
     setVideos([]);
     setSelectedVideos([]);
@@ -88,7 +99,7 @@ export function DashboardClient() {
   const handleApiKeyUpdate = (newApiKey: string) => {
     setApiKey(newApiKey);
     // Reset downstream state
-    handleChannelSelect(null);
+    handleSetChannels([]);
   }
 
   return (
@@ -101,18 +112,19 @@ export function DashboardClient() {
         />
 
         <ChannelSearch
-            onChannelSelect={handleChannelSelect}
-            selectedChannel={selectedChannel}
+            onChannelsChange={handleSetChannels}
+            selectedChannels={selectedChannels}
             disabled={!apiKey || isApiKeyLoading}
         />
         
         <VideoSelection
-          key={selectedChannel?.id}
+          key={selectedChannels.map(c => c.id).join('-')}
           videos={videos}
+          channels={selectedChannels}
           isLoading={isLoadingVideos}
           selectedVideos={selectedVideos}
           onSelectedVideosChange={setSelectedVideos}
-          disabled={!selectedChannel}
+          disabled={selectedChannels.length === 0}
           error={videoError}
         />
       </div>

@@ -4,15 +4,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import type { Video } from './dashboard-client';
+import type { Video, Channel } from './dashboard-client';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 const MAX_VIDEOS = 10;
 
 interface VideoSelectionProps {
   videos: Video[];
+  channels: Channel[];
   isLoading: boolean;
   selectedVideos: Video[];
   onSelectedVideosChange: (videos: Video[]) => void;
@@ -20,7 +22,7 @@ interface VideoSelectionProps {
   error?: string | null;
 }
 
-export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVideosChange, disabled = false, error = null }: VideoSelectionProps) {
+export function VideoSelection({ videos, channels, isLoading, selectedVideos, onSelectedVideosChange, disabled = false, error = null }: VideoSelectionProps) {
   const handleSelectVideo = (video: Video, checked: boolean) => {
     if (checked) {
       if (selectedVideos.length < MAX_VIDEOS) {
@@ -72,7 +74,7 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
 
     if (videos.length === 0) {
       return (
-        <p className="text-center text-muted-foreground text-sm py-8">No videos found for this channel.</p>
+        <p className="text-center text-muted-foreground text-sm py-8">No videos found for the selected channels.</p>
       );
     }
 
@@ -97,30 +99,47 @@ export function VideoSelection({ videos, isLoading, selectedVideos, onSelectedVi
                   <AlertDescription>You have reached the maximum of {MAX_VIDEOS} videos for this campaign.</AlertDescription>
               </Alert>
             )}
-            <div className="space-y-2 max-h-72 overflow-y-auto pr-2 border rounded-md p-2">
-                {videos.map((video) => {
-                  const isChecked = selectedVideos.some((v) => v.id === video.id);
-                  return (
-                    <div
-                        key={video.id}
-                        className={cn("flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors", {
-                           'opacity-50 cursor-not-allowed': atVideoLimit && !isChecked,
-                        })}
-                    >
-                        <Checkbox
-                        id={video.id}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
-                        disabled={atVideoLimit && !isChecked}
-                        />
-                        <Label htmlFor={video.id} className={cn("flex-1 cursor-pointer text-sm font-normal", {
-                           'cursor-not-allowed': atVideoLimit && !isChecked,
-                        })}>
-                        {video.title}
-                        </Label>
-                    </div>
-                  )
-                })}
+            <div className="space-y-2 max-h-[30rem] overflow-y-auto pr-2 border rounded-md">
+                <Accordion type="multiple" className="w-full" defaultValue={channels.map(c => c.id)}>
+                    {channels.map(channel => {
+                        const channelVideos = videos.filter(v => v.channelId === channel.id);
+                        if (channelVideos.length === 0) return null;
+                        return (
+                            <AccordionItem value={channel.id} key={channel.id}>
+                                <AccordionTrigger className="p-2 font-semibold hover:no-underline hover:bg-muted/50 rounded-md">
+                                    {channel.name} ({channelVideos.length} videos)
+                                </AccordionTrigger>
+                                <AccordionContent className="p-1">
+                                    <div className="space-y-1 pl-2">
+                                    {channelVideos.map((video) => {
+                                      const isChecked = selectedVideos.some((v) => v.id === video.id);
+                                      return (
+                                        <div
+                                            key={video.id}
+                                            className={cn("flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors", {
+                                               'opacity-50 cursor-not-allowed': atVideoLimit && !isChecked,
+                                            })}
+                                        >
+                                            <Checkbox
+                                            id={video.id}
+                                            checked={isChecked}
+                                            onCheckedChange={(checked) => handleSelectVideo(video, Boolean(checked))}
+                                            disabled={atVideoLimit && !isChecked}
+                                            />
+                                            <Label htmlFor={video.id} className={cn("flex-1 cursor-pointer text-sm font-normal", {
+                                               'cursor-not-allowed': atVideoLimit && !isChecked,
+                                            })}>
+                                            {video.title}
+                                            </Label>
+                                        </div>
+                                      )
+                                    })}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        );
+                    })}
+                </Accordion>
             </div>
           </div>
     );

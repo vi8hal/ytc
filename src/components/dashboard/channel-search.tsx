@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Check, Search, AlertCircle, Loader2 } from 'lucide-react';
+import { Check, Search, AlertCircle, Loader2, X, PlusCircle } from 'lucide-react';
 import debounce from 'lodash.debounce';
 
 import { cn } from '@/lib/utils';
@@ -12,23 +12,24 @@ import { Input } from '@/components/ui/input';
 import { searchChannels } from '@/lib/actions';
 import type { Channel } from './dashboard-client';
 import { Alert, AlertDescription } from '../ui/alert';
+import { Badge } from '../ui/badge';
 
 interface ChannelSearchProps {
-  selectedChannel: Channel | null;
-  onChannelSelect: (channel: Channel | null) => void;
+  selectedChannels: Channel[];
+  onChannelsChange: (channels: Channel[]) => void;
   disabled?: boolean;
 }
 
-export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = false }: ChannelSearchProps) {
+export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = false }: ChannelSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [channels, setChannels] = useState<Channel[]>([]);
+  const [searchResults, setSearchResults] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const debouncedSearch = useCallback(
     debounce(async (query: string) => {
       if (query.length < 3) {
-        setChannels([]);
+        setSearchResults([]);
         setIsLoading(false);
         setError(null);
         return;
@@ -37,33 +38,41 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
       setError(null);
       try {
         const results = await searchChannels(query);
-        setChannels(results);
+        setSearchResults(results.filter(
+          result => !selectedChannels.some(selected => selected.id === result.id)
+        ));
       } catch (error: any) {
         console.error('Failed to search channels:', error);
         setError(error.message || 'An unknown error occurred.');
-        setChannels([]);
+        setSearchResults([]);
       } finally {
         setIsLoading(false);
       }
     }, 500),
-    []
+    [selectedChannels]
   );
 
   useEffect(() => {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch]);
   
-  const handleSelectChannel = (channel: Channel) => {
-      onChannelSelect(channel);
-      setSearchQuery(channel.name);
-      setChannels([]);
+  const handleAddChannel = (channel: Channel) => {
+      if (!selectedChannels.some(c => c.id === channel.id)) {
+        onChannelsChange([...selectedChannels, channel]);
+      }
+      setSearchQuery('');
+      setSearchResults([]);
+  }
+
+  const handleRemoveChannel = (channelId: string) => {
+    onChannelsChange(selectedChannels.filter(c => c.id !== channelId));
   }
 
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-xl">Step 2: Select a Channel</CardTitle>
-        <CardDescription>Search for the YouTube channel you want to target.</CardDescription>
+        <CardTitle className="font-headline text-xl">Step 2: Select Channels</CardTitle>
+        <CardDescription>Search for and select the YouTube channels you want to target.</CardDescription>
       </CardHeader>
       <CardContent>
         {disabled ? (
@@ -72,42 +81,55 @@ export function ChannelSearch({ selectedChannel, onChannelSelect, disabled = fal
                 <AlertDescription>Please provide a valid YouTube API key in Step 1 to enable channel search.</AlertDescription>
             </Alert>
         ) : (
+          <div className='space-y-4'>
             <div className="relative">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
-                        placeholder="Search for a channel (min. 3 chars)..." 
+                        placeholder="Search for channels to add (min. 3 chars)..." 
                         value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value)
-                            if (selectedChannel) {
-                                onChannelSelect(null);
-                            }
-                        }}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
                     />
                     {isLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
                 </div>
 
-                {(channels.length > 0 || error) && (
+                {(searchResults.length > 0 || error) && (
                     <div className="absolute top-full z-10 mt-2 w-full rounded-md border bg-popover text-popover-foreground shadow-lg">
                         <ul className="max-h-60 overflow-y-auto p-1">
                             {error && <li className="p-2 text-sm text-destructive">{error}</li>}
-                            {!isLoading && !error && channels.length === 0 && searchQuery.length >=3 && <li className="p-2 text-sm text-muted-foreground">No channels found.</li>}
-                            {channels.map((channel) => (
+                            {!isLoading && !error && searchResults.length === 0 && searchQuery.length >=3 && <li className="p-2 text-sm text-muted-foreground">No new channels found.</li>}
+                            {searchResults.map((channel) => (
                                 <li 
                                     key={channel.id}
                                     className="flex cursor-pointer items-center justify-between rounded-sm p-2 text-sm hover:bg-accent"
-                                    onClick={() => handleSelectChannel(channel)}
+                                    onClick={() => handleAddChannel(channel)}
                                 >
                                     <span>{channel.name}</span>
-                                    {selectedChannel?.id === channel.id && <Check className="h-4 w-4" />}
+                                    <PlusCircle className="h-4 w-4 text-muted-foreground" />
                                 </li>
                             ))}
                         </ul>
                     </div>
                 )}
             </div>
+            
+            {selectedChannels.length > 0 && (
+              <div className='space-y-2'>
+                <h4 className='text-sm font-medium text-muted-foreground'>Selected Channels:</h4>
+                <div className='flex flex-wrap gap-2'>
+                  {selectedChannels.map(channel => (
+                    <Badge key={channel.id} variant="secondary" className="pl-2 pr-1 text-sm">
+                      {channel.name}
+                      <Button variant="ghost" size="icon" className='h-5 w-5 ml-1' onClick={() => handleRemoveChannel(channel.id)}>
+                         <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
