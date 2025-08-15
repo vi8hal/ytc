@@ -485,10 +485,10 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
         return { isValid: true, message: 'API Key is valid.' };
     } catch (error: any) {
         console.warn(`API key validation failed: ${error.message}`);
-        if (error.code === 403) {
-            return { isValid: false, message: 'The provided API Key is invalid or does not have the YouTube Data API v3 service enabled.' };
+        if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
+            return { isValid: false, message: 'The provided API Key does not have the YouTube Data API v3 service enabled.' };
         }
-         if (error.code === 400) {
+         if (error.code === 400 || (error.errors && (error.errors[0]?.reason === 'keyInvalid' || error.errors[0]?.reason === 'badRequest'))) {
             return { isValid: false, message: 'The provided API Key is malformed or invalid.' };
         }
         return { isValid: false, message: 'Could not validate the API Key due to an unexpected error.' };
@@ -496,6 +496,12 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
 }
 
 export async function updateApiKeyAction(prevState: any, formData: FormData): Promise<UpdateApiKeyActionState> {
+    const userId = await getUserIdFromSession();
+    if (!userId) {
+        console.error("Update API Key failed: User not authenticated.");
+        return { error: true, message: 'Authentication failed. Please sign in again.' };
+    }
+
     try {
         const apiKey = formData.get('apiKey') as string;
         const validation = ApiKeySchema.safeParse(apiKey);
@@ -506,12 +512,6 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
             return { error: true, message: errorMessage };
         }
         
-        const userId = await getUserIdFromSession();
-        if (!userId) {
-            console.error("Update API Key failed: User not authenticated.");
-            return { error: true, message: 'Authentication failed. Please sign in again.' };
-        }
-
         const { isValid, message } = await validateApiKey(apiKey);
         if (!isValid) {
             console.warn(`API key for user ${userId} is invalid: ${message}`);
