@@ -50,7 +50,7 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
     }, [currentApiKey]);
 
     useEffect(() => {
-        if (state && !state.error && state.apiKey) {
+        if (state?.apiKey && !state.error) {
             onApiKeyUpdate(state.apiKey);
         }
     }, [state, onApiKeyUpdate]);
