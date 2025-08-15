@@ -31,6 +31,7 @@ export async function initializeDb() {
                 FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
             );
         `);
+        console.log('Database tables initialized or already exist.');
     } catch (error) {
         // Don't throw during init, just log. The app might still work.
         console.error('Error during database initialization:', error);

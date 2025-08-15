@@ -95,20 +95,10 @@ async function getUserIdFromSession() {
     return payload?.userId as number | null;
 }
 
-async function runDbInit() {
-    // This is a temporary workaround to ensure the DB is initialized.
-    try {
-        await initializeDb();
-    } catch (e) {
-        console.error("DB init failed, but continuing...", e)
-    }
-}
-
-
 // --- Server Actions ---
 
 export async function signInAction(prevState: any, formData: FormData) {
-  await runDbInit();
+  await initializeDb();
   console.log('Sign-in action initiated.');
   
   const validation = SignInSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -153,7 +143,7 @@ export async function signInAction(prevState: any, formData: FormData) {
 }
 
 export async function signUpAction(prevState: any, formData: FormData) {
-    await runDbInit();
+    await initializeDb();
     console.log('Sign-up action initiated.');
     
     const validation = SignUpSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -205,7 +195,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
 }
 
 export async function verifyOtpAction(prevState: any, formData: FormData) {
-    await runDbInit();
+    await initializeDb();
     console.log('OTP verification action initiated.');
     
     const otp = formData.get('otp') as string;
@@ -270,7 +260,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 }
 
 export async function forgotPasswordAction(prevState: any, formData: FormData) {
-    await runDbInit();
+    await initializeDb();
     console.log('Forgot password action initiated.');
     
     const email = formData.get('email') as string;
@@ -313,7 +303,7 @@ export async function shuffleCommentsAction(
   prevState: ShuffleState,
   formData: FormData
 ): Promise<ShuffleState> {
-  await runDbInit();
+  await initializeDb();
   console.log('Shuffle comments action initiated.');
   
   try {
@@ -450,7 +440,7 @@ export async function getChannelVideos(channelId: string) {
 
 export async function getApiKeyAction() {
     try {
-        await runDbInit();
+        await initializeDb();
         const userId = await getUserIdFromSession();
         if (!userId) {
             console.warn('getApiKeyAction called without authenticated user.');
@@ -471,8 +461,8 @@ type UpdateApiKeyActionState = {
     apiKey: string | null;
 }
 
-export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, formData: FormData): Promise<UpdateApiKeyActionState> {
-    await runDbInit();
+export async function updateApiKeyAction(prevState: UpdateApiKeyActionState | null, formData: FormData): Promise<UpdateApiKeyActionState> {
+    await initializeDb();
     const apiKey = formData.get('apiKey') as string;
     const validation = ApiKeySchema.safeParse(apiKey);
 
