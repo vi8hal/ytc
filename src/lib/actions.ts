@@ -511,7 +511,7 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
             UPDATE user_settings SET "youtubeApiKey" = ${apiKey} WHERE "userId" = ${userId}
         `;
         console.log(`API key for user ${userId} updated successfully.`);
-        return { error: false, message: 'API Key validated and saved successfully.', apiKey: apiKey };
+        return { error: false, message: 'API Key has been successfully validated and saved.', apiKey: apiKey };
 
     } catch(e) {
         console.error("Error in updateApiKeyAction:", e);
@@ -520,5 +520,7 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
     }
 }
 
+
+    
 
     
