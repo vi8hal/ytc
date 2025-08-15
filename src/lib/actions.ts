@@ -367,26 +367,31 @@ export async function logOutAction() {
 // --- YouTube API Actions ---
 
 async function getApiKeyForCurrentUser() {
-    const userId = await getUserIdFromSession();
-    if (!userId) {
-        throw new Error('User not authenticated.');
+    try {
+        const userId = await getUserIdFromSession();
+        if (!userId) {
+            throw new Error('User not authenticated.');
+        }
+        const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
+        const apiKey = result.rows[0]?.youtubeApiKey;
+        if (!apiKey) {
+            return null;
+        }
+        return apiKey;
+    } catch(e) {
+        console.error("Failed to get API key for current user:", e);
+        throw new Error("Could not retrieve API key from the database.");
     }
-    const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
-    const apiKey = result.rows[0]?.youtubeapikey;
-    if (!apiKey) {
-        return null;
-    }
-    return apiKey;
 }
 
 export async function searchChannels(query: string) {
   if (!query) return [];
-  const apiKey = await getApiKeyForCurrentUser();
-  if (!apiKey) {
-    throw new Error('YouTube API Key not configured. Please add it in settings.');
-  }
-
   try {
+    const apiKey = await getApiKeyForCurrentUser();
+    if (!apiKey) {
+      throw new Error('YouTube API Key not configured. Please add it in settings.');
+    }
+
     const youtube = google.youtube({ version: 'v3', auth: apiKey });
 
     console.log(`Searching for YouTube channels with query: "${query}"`);
@@ -409,6 +414,9 @@ export async function searchChannels(query: string) {
     console.error('Error searching YouTube channels:', error.message);
     if (error.code === 400 && error.errors?.[0]?.reason === 'keyInvalid') {
         throw new Error('Your YouTube API Key is invalid. Please check it in the Google Cloud Console and save it again.');
+    }
+     if (error.message.includes('User not authenticated') || error.message.includes('Could not retrieve API key')) {
+      throw error;
     }
     throw new Error('Failed to search for channels. Please check your API key and permissions.');
   }
