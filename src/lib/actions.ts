@@ -368,6 +368,7 @@ export async function logOutAction() {
 
 async function getApiKeyForCurrentUser(): Promise<string | null> {
     try {
+        await initializeDb();
         const userId = await getUserIdFromSession();
         if (!userId) {
             return null;
@@ -542,3 +543,5 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
         return { error: true, message: errorMessage };
     }
 }
+
+    
