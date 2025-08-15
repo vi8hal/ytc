@@ -55,7 +55,8 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
 
   useEffect(() => {
     debouncedSearch(searchQuery);
-  }, [searchQuery, debouncedSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
   
   const handleAddChannel = (channel: Channel) => {
       if (!selectedChannels.some(c => c.id === channel.id)) {
@@ -95,7 +96,7 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
                     {isLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
                 </div>
 
-                {(searchResults.length > 0 || error) && (
+                {(searchResults.length > 0 || error || (searchQuery.length >= 3 && !isLoading)) && (
                     <div className="absolute top-full z-10 mt-2 w-full rounded-md border bg-popover text-popover-foreground shadow-lg">
                         <ul className="max-h-60 overflow-y-auto p-1">
                             {error && <li className="p-2 text-sm text-destructive">{error}</li>}
