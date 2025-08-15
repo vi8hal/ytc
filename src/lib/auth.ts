@@ -1,3 +1,4 @@
+
 'use server';
 
 import * as jose from 'jose';
@@ -30,11 +31,17 @@ export async function verifySessionToken(token: string) {
         const { payload } = await jose.jwtVerify(token, secretKey, { algorithms: ['HS256'] });
         return payload;
     } catch (error) {
-        return null;
+        return null; // Return null if token is invalid or expired
     }
 }
 
 export async function verifyVerificationToken(token: string) {
-    const { payload } = await jose.jwtVerify(token, secretKey, { algorithms: ['HS256'] });
-    return payload;
+    try {
+        const { payload } = await jose.jwtVerify(token, secretKey, { algorithms: ['HS256'] });
+        return payload;
+    } catch (error) {
+        return null;
+    }
 }
+
+    

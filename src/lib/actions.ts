@@ -186,7 +186,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
 
         const hashedPassword = bcrypt.hashSync(password, 10);
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
         const newUserResult = await client.query`
             INSERT INTO users (name, email, password, verified, otp, "otpExpires")
@@ -243,8 +243,6 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 
     try {
         const token = cookies().get('verification_token')?.value;
-        let user: any;
-
         if (!token) {
             return { error: 'Your verification session has expired. Please try signing up or logging in again.' };
         }
@@ -255,7 +253,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         }
         
         const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
-        user = result.rows[0];
+        const user = result.rows[0];
 
         if (!user) {
             return { error: 'User not found. Please try signing up again.' };

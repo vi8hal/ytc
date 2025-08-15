@@ -13,40 +13,64 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
+  // --- Handle Protected Routes ---
   if (isProtectedRoute) {
     if (!sessionToken) {
+      console.log(`No session token, redirecting from protected route ${pathname} to /signin`);
       return NextResponse.redirect(new URL('/signin', request.url));
     }
     
-    const payload = await verifySessionToken(sessionToken);
-    if (!payload) {
-        // Clear invalid cookie
-        const response = NextResponse.redirect(new URL('/signin', request.url));
-        response.cookies.delete('session_token');
-        return response;
+    try {
+      const payload = await verifySessionToken(sessionToken);
+      if (!payload) {
+          console.log(`Invalid session token, redirecting from protected route ${pathname} to /signin`);
+          const response = NextResponse.redirect(new URL('/signin', request.url));
+          response.cookies.delete('session_token');
+          return response;
+      }
+    } catch(e) {
+       console.log(`Token verification error, redirecting from protected route ${pathname} to /signin`);
+       const response = NextResponse.redirect(new URL('/signin', request.url));
+       response.cookies.delete('session_token');
+       return response;
     }
   }
 
-  if (isAuthRoute && sessionToken) {
-    const payload = await verifySessionToken(sessionToken);
-    if (payload) {
-      // Allow access to /verify-otp even if logged in, in case of re-verification flow
-      if(pathname === '/verify-otp' && request.cookies.has('verification_token')) {
-        return NextResponse.next();
-      }
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+  // --- Handle Authentication Routes ---
+  if (isAuthRoute) {
+    if (sessionToken) {
+        try {
+            const payload = await verifySessionToken(sessionToken);
+            if (payload) {
+                // If user is logged in, redirect them away from auth pages to the dashboard.
+                // Exception: Allow access to /verify-otp if they have a verification_token,
+                // which can happen in a re-verification flow.
+                if (pathname === '/verify-otp' && request.cookies.has('verification_token')) {
+                    return NextResponse.next();
+                }
+                console.log(`Logged-in user tried to access auth route ${pathname}, redirecting to /dashboard`);
+                return NextResponse.redirect(new URL('/dashboard', request.url));
+            }
+        } catch (e) {
+            // Invalid session token, let them proceed to the auth page.
+        }
     }
   }
   
-  // If on /verify-otp page, ensure there is a verification token
-  if(pathname === '/verify-otp' && !request.cookies.has('verification_token')) {
+  // --- Special Case for /verify-otp ---
+  // Ensure the /verify-otp page is only accessible if a verification_token exists.
+  // This prevents users from navigating to it directly without initiating a sign-up or sign-in.
+  if (pathname === '/verify-otp' && !request.cookies.has('verification_token')) {
+    console.log('User tried to access /verify-otp without a verification token, redirecting to /signup');
     return NextResponse.redirect(new URL('/signup', request.url));
   }
-
 
   return NextResponse.next();
 }
 
 export const config = {
+  // Match all routes except for static assets and API routes
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
+
+    
