@@ -28,7 +28,7 @@ function SubmitButton() {
         </>
       ) : (
         <>
-          Send Reset Link
+          Send Reset Code
           <ArrowRight className="ml-2" />
         </>
       )}
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
             <Logo />
           </div>
           <CardTitle className="font-headline text-2xl">Forgot Your Password?</CardTitle>
-          <CardDescription>No worries. Enter your email and we'll send you a reset link.</CardDescription>
+          <CardDescription>No worries. Enter your email and we'll send you a 6-digit reset code.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <Button variant="outline" className="w-full">
@@ -83,6 +83,12 @@ export default function ForgotPasswordPage() {
             </div>
             <SubmitButton />
           </form>
+           <p className="mt-4 text-center text-sm text-muted-foreground">
+            Received a code?{' '}
+            <Link href="/reset-password" className="font-medium text-primary hover:underline underline-offset-4">
+              Reset your password
+            </Link>
+          </p>
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-sm text-muted-foreground">

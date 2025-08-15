@@ -24,6 +24,9 @@ import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shu
 const EmailSchema = z.string().email({ message: 'Invalid email address.' });
 const PasswordSchema = z.string().min(8, { message: 'Password must be at least 8 characters long.' });
 const ApiKeySchema = z.string().min(1, { message: 'API Key cannot be empty.' });
+const NameSchema = z.string().min(2, { message: 'Name must be at least 2 characters long.' });
+const OTPSchema = z.string().length(6, { message: 'OTP must be 6 digits.' });
+
 
 const SignInSchema = z.object({
   email: EmailSchema,
@@ -31,12 +34,17 @@ const SignInSchema = z.object({
 });
 
 const SignUpSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters long.' }),
+  name: NameSchema,
   email: EmailSchema,
   password: PasswordSchema,
 });
 
-const OTPSchema = z.string().length(6, { message: 'OTP must be 6 digits.' });
+const ResetPasswordSchema = z.object({
+    email: EmailSchema,
+    otp: OTPSchema,
+    password: PasswordSchema,
+});
+
 
 const ShuffleActionSchema = z.object({
   comments: z.array(z.string().min(1, { message: "Comments cannot be empty."})).length(4, { message: "You must provide exactly 4 comments."}),
@@ -45,7 +53,7 @@ const ShuffleActionSchema = z.object({
 
 // --- Helper Functions ---
 
-async function sendVerificationEmail(email: string, otp: string) {
+async function sendVerificationEmail(email: string, otp: string, subject: string, body: string) {
   console.log(`Attempting to send verification email to: ${email}`);
   try {
       const transporter = nodemailer.createTransport({
@@ -61,23 +69,16 @@ async function sendVerificationEmail(email: string, otp: string) {
       const mailOptions = {
         from: process.env.EMAIL_FROM,
         to: email,
-        subject: 'Your ChronoComment Verification Code',
-        html: `
-          <div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-            <h2>Welcome to ChronoComment!</h2>
-            <p>Your one-time verification code is:</p>
-            <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
-            <p style="color: #666;">This code will expire in 10 minutes.</p>
-          </div>
-        `,
+        subject: subject,
+        html: body.replace('{{otp}}', otp),
       };
 
     await transporter.sendMail(mailOptions);
-    console.log(`Verification email sent successfully to ${email}`);
+    console.log(`Email sent successfully to ${email}`);
   } catch (error) {
-    console.error('Failed to send verification email:', error);
+    console.error('Failed to send email:', error);
     // In a real app, you might want to add more robust error handling or use a dedicated email service.
-    throw new Error('Could not send verification email. Please check server configuration.');
+    throw new Error('Could not send email. Please check server configuration.');
   }
 }
 
@@ -127,7 +128,17 @@ export async function signInAction(prevState: any, formData: FormData) {
     if (!user.verified) {
       console.log(`User ${email} is not verified. Sending OTP.`);
       const otp = await generateAndSaveOtp(email);
-      await sendVerificationEmail(email, otp);
+      await sendVerificationEmail(
+          email, 
+          otp, 
+          'Your ChronoComment Verification Code',
+          `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+            <h2>Welcome to ChronoComment!</h2>
+            <p>Your one-time verification code is:</p>
+            <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+            <p style="color: #666;">This code will expire in 10 minutes.</p>
+          </div>`
+      );
 
       const verificationToken = await createVerificationToken({ email });
       cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
@@ -150,8 +161,9 @@ export async function signInAction(prevState: any, formData: FormData) {
 export async function signUpAction(prevState: any, formData: FormData) {
     await initializeDb();
     console.log('Sign-up action initiated.');
-    
-    const validation = SignUpSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    const rawData = Object.fromEntries(formData.entries());
+    const validation = SignUpSchema.safeParse(rawData);
 
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
@@ -183,13 +195,22 @@ export async function signUpAction(prevState: any, formData: FormData) {
         `;
         const newUserId = newUserResult.rows[0].id;
 
-        // Ensure user_settings row is created on sign up
         await client.query`
             INSERT INTO user_settings ("userId") VALUES (${newUserId});
         `;
         console.log(`New user and settings created for email: ${email}`);
 
-        await sendVerificationEmail(email, otp);
+        await sendVerificationEmail(
+            email, 
+            otp,
+            'Your ChronoComment Verification Code',
+            `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+                <h2>Welcome to ChronoComment!</h2>
+                <p>Your one-time verification code is:</p>
+                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                <p style="color: #666;">This code will expire in 10 minutes.</p>
+            </div>`
+        );
         
         const verificationToken = await createVerificationToken({ email });
         cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
@@ -224,23 +245,20 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         const token = cookies().get('verification_token')?.value;
         let user: any;
 
-        if (token) {
-            try {
-                const payload: any = await verifyVerificationToken(token);
-                const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
-                user = result.rows[0];
-            } catch (e) {
-                console.warn('Verification token was present but invalid:', e);
-            }
+        if (!token) {
+            return { error: 'Your verification session has expired. Please try signing up or logging in again.' };
         }
 
+        const payload: any = await verifyVerificationToken(token);
+        if (!payload || !payload.email) {
+            return { error: 'Invalid verification token. Please try again.' };
+        }
+        
+        const result = await db.query`SELECT * FROM users WHERE email = ${payload.email}`;
+        user = result.rows[0];
+
         if (!user) {
-            console.warn('Verification token not found or invalid, trying OTP directly.');
-            const result = await db.query`SELECT * FROM users WHERE otp = ${otp} AND "otpExpires" > NOW()`;
-            user = result.rows[0];
-             if (!user) {
-                return { error: 'Invalid or expired OTP. Please sign in again to get a new code.' };
-            }
+            return { error: 'User not found. Please try signing up again.' };
         }
         
         if (user.otp !== otp) {
@@ -292,11 +310,17 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
         if (user) {
             console.log(`Password reset requested for existing user: ${email}`);
             const otp = await generateAndSaveOtp(email);
-            // Re-using verification email, but a dedicated password reset email would be better.
-            await sendVerificationEmail(email, `Your password reset code is: ${otp}`);
-            
-            const verificationToken = await createVerificationToken({ email, isPasswordReset: true });
-            cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+            await sendVerificationEmail(
+                email, 
+                otp,
+                'Your ChronoComment Password Reset Code',
+                `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+                    <h2>Password Reset Request</h2>
+                    <p>Your one-time password reset code is:</p>
+                    <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                    <p style="color: #666;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+                </div>`
+            );
         } else {
             console.log(`Password reset requested for non-existent user: ${email}`);
         }
@@ -306,6 +330,53 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
     // Always return a generic message to prevent user enumeration attacks.
     return { error: null, message: 'If an account with that email exists, a reset code has been sent.' };
 }
+
+export async function resetPasswordAction(prevState: any, formData: FormData) {
+    await initializeDb();
+    console.log('Reset password action initiated.');
+
+    const rawData = Object.fromEntries(formData.entries());
+    const validation = ResetPasswordSchema.safeParse(rawData);
+
+    if (!validation.success) {
+        const errors = validation.error.flatten().fieldErrors;
+        console.warn('Reset password validation failed:', errors);
+        const errorMessage = Object.values(errors).flat()[0] || 'Invalid input.';
+        return { error: errorMessage };
+    }
+
+    const { email, otp, password } = validation.data;
+    
+    try {
+        const result = await db.query`SELECT * FROM users WHERE email = ${email}`;
+        const user = result.rows[0];
+
+        if (!user) {
+            return { error: 'Invalid email or OTP.' };
+        }
+
+        if (user.otp !== otp || !user.otpExpires || new Date() > new Date(user.otpExpires)) {
+            return { error: 'Invalid or expired OTP. Please request a new one.' };
+        }
+
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        await db.query`
+            UPDATE users
+            SET password = ${hashedPassword}, otp = ${null}, "otpExpires" = ${null}, verified = ${true}
+            WHERE id = ${user.id}
+        `;
+
+        console.log(`Password for user ${email} has been reset successfully.`);
+        
+    } catch (error) {
+         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
+        console.error('An unexpected error occurred during password reset:', error);
+        return { error: 'An unexpected server error occurred.' };
+    }
+
+    redirect('/signin');
+}
+
 
 type ShuffleState = {
   data: ShuffleCommentsOutput | null;
