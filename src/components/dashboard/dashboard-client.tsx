@@ -13,7 +13,7 @@ import { ApiKeySetup } from './api-key-setup';
 import { useToast } from '@/hooks/use-toast';
 
 export type Video = { id: string; title: string; channelId: string; channelTitle: string; };
-export type Channel = { id: string; name: string };
+export type Channel = { id: string; name: string; thumbnail: string; };
 
 export function DashboardClient() {
   const { toast } = useToast();

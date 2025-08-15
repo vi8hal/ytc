@@ -13,6 +13,7 @@ import { searchChannels } from '@/lib/actions';
 import type { Channel } from './dashboard-client';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
+import Image from 'next/image';
 
 interface ChannelSearchProps {
   selectedChannels: Channel[];
@@ -105,7 +106,10 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
                                     className="flex cursor-pointer items-center justify-between rounded-sm p-2 text-sm hover:bg-accent"
                                     onClick={() => handleAddChannel(channel)}
                                 >
-                                    <span>{channel.name}</span>
+                                    <div className="flex items-center gap-3">
+                                        <Image src={channel.thumbnail} alt={channel.name} width={28} height={28} className="rounded-full" />
+                                        <span>{channel.name}</span>
+                                    </div>
                                     <PlusCircle className="h-4 w-4 text-muted-foreground" />
                                 </li>
                             ))}
@@ -119,7 +123,8 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
                 <h4 className='text-sm font-medium text-muted-foreground'>Selected Channels:</h4>
                 <div className='flex flex-wrap gap-2'>
                   {selectedChannels.map(channel => (
-                    <Badge key={channel.id} variant="secondary" className="pl-2 pr-1 text-sm">
+                    <Badge key={channel.id} variant="secondary" className="pl-2 pr-1 text-sm h-7">
+                      <Image src={channel.thumbnail} alt={channel.name} width={20} height={20} className="rounded-full mr-2" />
                       {channel.name}
                       <Button variant="ghost" size="icon" className='h-5 w-5 ml-1' onClick={() => handleRemoveChannel(channel.id)}>
                          <X className="h-3 w-3" />

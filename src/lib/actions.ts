@@ -370,15 +370,13 @@ async function getApiKeyForCurrentUser(): Promise<string | null> {
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
-            throw new Error('User not authenticated.');
+            return null;
         }
         const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
         const apiKey = result.rows[0]?.youtubeApiKey;
         return apiKey || null;
     } catch(e) {
         console.error("Failed to get API key for current user:", e);
-        // Do not throw here, as it might be expected that the key doesn't exist.
-        // The caller should handle the null case.
         return null;
     }
 }
@@ -404,6 +402,7 @@ export async function searchChannels(query: string) {
     const channels = response.data.items?.map(item => ({
       id: item.id?.channelId || '',
       name: item.snippet?.title || 'Untitled Channel',
+      thumbnail: item.snippet?.thumbnails?.default?.url || `https://placehold.co/88x88.png`,
     })).filter(c => c.id) || [];
     
     console.log(`Found ${channels.length} channels.`);
