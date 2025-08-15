@@ -91,8 +91,13 @@ async function generateAndSaveOtp(email: string) {
 async function getUserIdFromSession() {
     const sessionToken = cookies().get('session_token')?.value;
     if (!sessionToken) return null;
-    const payload = await verifySessionToken(sessionToken);
-    return payload?.userId as number | null;
+    try {
+      const payload = await verifySessionToken(sessionToken);
+      return payload?.userId as number | null;
+    } catch(e) {
+      console.error("Session token verification failed:", e);
+      return null;
+    }
 }
 
 // --- Server Actions ---
@@ -156,11 +161,14 @@ export async function signUpAction(prevState: any, formData: FormData) {
     }
 
     const { name, email, password } = validation.data;
+    const client = await db.getClient();
 
     try {
-        const existingUserResult = await db.query`SELECT * FROM users WHERE email = ${email}`;
+        await client.query('BEGIN');
+        const existingUserResult = await client.query`SELECT * FROM users WHERE email = ${email}`;
         if (existingUserResult.rowCount > 0) {
             console.warn(`Sign-up attempt for existing email: ${email}`);
+            await client.query('ROLLBACK');
             return { error: 'An account with this email already exists.' };
         }
 
@@ -168,7 +176,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
-        const newUserResult = await db.query`
+        const newUserResult = await client.query`
             INSERT INTO users (name, email, password, verified, otp, "otpExpires")
             VALUES (${name}, ${email}, ${hashedPassword}, ${false}, ${otp}, ${otpExpires})
             RETURNING id
@@ -176,7 +184,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         const newUserId = newUserResult.rows[0].id;
 
         // Ensure user_settings row is created on sign up
-        await db.query`
+        await client.query`
             INSERT INTO user_settings ("userId") VALUES (${newUserId});
         `;
         console.log(`New user and settings created for email: ${email}`);
@@ -185,11 +193,16 @@ export async function signUpAction(prevState: any, formData: FormData) {
         
         const verificationToken = await createVerificationToken({ email });
         cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+        
+        await client.query('COMMIT');
     
     } catch (error) {
+        await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during sign-up:', error);
         return { error: (error as Error).message || 'An unexpected server error occurred.' };
+    } finally {
+        client.release();
     }
   
     redirect('/verify-otp');
@@ -483,7 +496,6 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
 }
 
 export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, formData: FormData): Promise<UpdateApiKeyActionState> {
-    await initializeDb();
     try {
         const apiKey = formData.get('apiKey') as string;
         const validation = ApiKeySchema.safeParse(apiKey);
@@ -522,5 +534,3 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
         return { error: true, message: errorMessage };
     }
 }
-
-    
