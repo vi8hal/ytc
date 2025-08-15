@@ -353,7 +353,6 @@ export async function logOutAction() {
 // --- YouTube API Actions ---
 
 async function getApiKeyForCurrentUser() {
-    
     const userId = await getUserIdFromSession();
     if (!userId) {
         throw new Error('User not authenticated.');
@@ -440,7 +439,6 @@ export async function getChannelVideos(channelId: string) {
 
 export async function getApiKeyAction() {
     try {
-        
         const userId = await getUserIdFromSession();
         if (!userId) {
             console.warn('getApiKeyAction called without authenticated user.');
@@ -519,8 +517,3 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
         return { error: true, message: errorMessage };
     }
 }
-
-
-    
-
-    
