@@ -5,7 +5,6 @@ import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { KeyRound, Loader2, Save, Terminal, AlertCircle, CheckCircle } from 'lucide-react';
 import { updateApiKeyAction } from '@/lib/actions';
-import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -40,8 +39,8 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 
 
 export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKeySetupProps) {
-    const { toast } = useToast();
-    const [state, formAction] = useActionState(updateApiKeyAction, null);
+    const initialState = { message: null, error: false, apiKey: null };
+    const [state, formAction] = useActionState(updateApiKeyAction, initialState);
     const [localApiKey, setLocalApiKey] = useState(currentApiKey ?? '');
 
      useEffect(() => {
@@ -51,9 +50,9 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
     }, [currentApiKey]);
 
     useEffect(() => {
-        if (state?.message && !state.error && state.apiKey) {
+        if (state && !state.error && state.apiKey) {
             onApiKeyUpdate(state.apiKey);
-        } 
+        }
     }, [state, onApiKeyUpdate]);
 
 

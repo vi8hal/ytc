@@ -457,11 +457,11 @@ export async function getApiKeyAction() {
 
 type UpdateApiKeyActionState = {
     message: string | null;
-    error: boolean | null;
-    apiKey: string | null;
+    error: boolean;
+    apiKey?: string | null;
 }
 
-async function validateApiKey(apiKey: string): Promise<boolean> {
+async function validateApiKey(apiKey: string): Promise<{isValid: boolean, message: string}> {
     try {
         const youtube = google.youtube({ version: 'v3', auth: apiKey });
         // Make a simple, low-quota-cost call to check if the key is valid.
@@ -470,43 +470,52 @@ async function validateApiKey(apiKey: string): Promise<boolean> {
             q: 'test',
             maxResults: 1,
         });
-        return true;
+        return { isValid: true, message: 'API Key is valid.' };
     } catch (error: any) {
         console.warn(`API key validation failed: ${error.message}`);
-        return false;
+        if (error.code === 403) {
+            return { isValid: false, message: 'The provided API Key is invalid or does not have the YouTube Data API v3 service enabled.' };
+        }
+         if (error.code === 400) {
+            return { isValid: false, message: 'The provided API Key is malformed or invalid.' };
+        }
+        return { isValid: false, message: 'Could not validate the API Key due to an unexpected error.' };
     }
 }
 
-export async function updateApiKeyAction(prevState: UpdateApiKeyActionState | null, formData: FormData): Promise<UpdateApiKeyActionState> {
-    
-    const apiKey = formData.get('apiKey') as string;
-    const validation = ApiKeySchema.safeParse(apiKey);
-
-    if (!validation.success) {
-        console.warn("API Key validation failed:", validation.error.flatten().formErrors[0]);
-        return { error: true, message: validation.error.flatten().formErrors[0], apiKey: null };
-    }
-    
-    const userId = await getUserIdFromSession();
-    if (!userId) {
-        console.error("Update API Key failed: User not authenticated.");
-        return { error: true, message: 'Authentication failed. Please sign in again.', apiKey: null };
-    }
-
-    const isValid = await validateApiKey(apiKey);
-    if (!isValid) {
-        return { error: true, message: 'The provided API Key is invalid or does not have YouTube Data API v3 enabled.', apiKey: null };
-    }
-    
+export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, formData: FormData): Promise<UpdateApiKeyActionState> {
     try {
+        const apiKey = formData.get('apiKey') as string;
+        const validation = ApiKeySchema.safeParse(apiKey);
+
+        if (!validation.success) {
+            const errorMessage = validation.error.flatten().formErrors[0]
+            console.warn("API Key validation failed:", errorMessage);
+            return { error: true, message: errorMessage };
+        }
+        
+        const userId = await getUserIdFromSession();
+        if (!userId) {
+            console.error("Update API Key failed: User not authenticated.");
+            return { error: true, message: 'Authentication failed. Please sign in again.' };
+        }
+
+        const { isValid, message } = await validateApiKey(apiKey);
+        if (!isValid) {
+            console.warn(`API key for user ${userId} is invalid: ${message}`);
+            return { error: true, message: message };
+        }
+        
         console.log(`Updating API key for user ${userId}...`);
         await db.query`
             UPDATE user_settings SET "youtubeApiKey" = ${apiKey} WHERE "userId" = ${userId}
         `;
         console.log(`API key for user ${userId} updated successfully.`);
         return { error: false, message: 'API Key validated and saved successfully.', apiKey: apiKey };
+
     } catch(e) {
         console.error("Error in updateApiKeyAction:", e);
-        return { error: true, message: 'An unexpected server error occurred while saving the key.', apiKey: null };
+        const errorMessage = e instanceof Error ? e.message : 'An unexpected server error occurred while saving the key.';
+        return { error: true, message: errorMessage };
     }
 }
