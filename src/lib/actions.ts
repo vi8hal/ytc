@@ -162,8 +162,11 @@ export async function signUpAction(prevState: any, formData: FormData) {
     await initializeDb();
     console.log('Sign-up action initiated.');
 
-    const rawData = Object.fromEntries(formData.entries());
-    const validation = SignUpSchema.safeParse(rawData);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    const validation = SignUpSchema.safeParse({ name, email, password });
 
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
@@ -172,7 +175,6 @@ export async function signUpAction(prevState: any, formData: FormData) {
         return { error: errorMessage };
     }
 
-    const { name, email, password } = validation.data;
     const client = await db.getClient();
 
     try {
