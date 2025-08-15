@@ -366,7 +366,7 @@ export async function logOutAction() {
 
 // --- YouTube API Actions ---
 
-async function getApiKeyForCurrentUser() {
+async function getApiKeyForCurrentUser(): Promise<string | null> {
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
@@ -374,13 +374,12 @@ async function getApiKeyForCurrentUser() {
         }
         const result = await db.query`SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = ${userId}`;
         const apiKey = result.rows[0]?.youtubeApiKey;
-        if (!apiKey) {
-            return null;
-        }
-        return apiKey;
+        return apiKey || null;
     } catch(e) {
         console.error("Failed to get API key for current user:", e);
-        throw new Error("Could not retrieve API key from the database.");
+        // Do not throw here, as it might be expected that the key doesn't exist.
+        // The caller should handle the null case.
+        return null;
     }
 }
 
@@ -415,7 +414,7 @@ export async function searchChannels(query: string) {
     if (error.code === 400 && error.errors?.[0]?.reason === 'keyInvalid') {
         throw new Error('Your YouTube API Key is invalid. Please check it in the Google Cloud Console and save it again.');
     }
-     if (error.message.includes('User not authenticated') || error.message.includes('Could not retrieve API key')) {
+     if (error.message.includes('User not authenticated') || error.message.includes('YouTube API Key not configured')) {
       throw error;
     }
     throw new Error('Failed to search for channels. Please check your API key and permissions.');
@@ -459,7 +458,7 @@ export async function getChannelVideos(channelId: string) {
 
 // --- User Settings Actions ---
 
-export async function getApiKeyAction() {
+export async function getApiKeyAction(): Promise<{ apiKey: string | null, error: string | null }> {
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
@@ -470,7 +469,7 @@ export async function getApiKeyAction() {
         console.log(`API key for user ${userId} is ${apiKey ? 'set' : 'not set'}.`);
         return { apiKey: apiKey, error: null };
     } catch (error) {
-        console.error("Error getting API key:", error);
+        console.error("Error in getApiKeyAction:", error);
         return { apiKey: null, error: 'Failed to retrieve API key from the database.' };
     }
 }
