@@ -41,7 +41,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 
 export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKeySetupProps) {
     const { toast } = useToast();
-    const [state, formAction] = useActionState(updateApiKeyAction, { message: null, error: null, apiKey: null });
+    const [state, formAction] = useActionState(updateApiKeyAction, null);
     const [localApiKey, setLocalApiKey] = useState(currentApiKey ?? '');
 
      useEffect(() => {
@@ -52,20 +52,9 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
 
     useEffect(() => {
         if (state?.message && !state.error && state.apiKey) {
-            toast({
-                title: 'Success!',
-                description: state.message,
-                variant: 'default',
-            });
             onApiKeyUpdate(state.apiKey);
-        } else if (state?.message && state.error) {
-            toast({
-                title: 'Error Saving API Key',
-                description: state.message,
-                variant: 'destructive',
-            });
-        }
-    }, [state, toast, onApiKeyUpdate]);
+        } 
+    }, [state, onApiKeyUpdate]);
 
 
     if (isLoading) {
@@ -110,10 +99,10 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
                         </div>
                     </div>
                     <SubmitButton disabled={!localApiKey || localApiKey === currentApiKey} />
-                     {state?.message && (
+                     {state && state.message && (
                         <Alert variant={state.error ? 'destructive' : 'default'}>
                            {state.error ?  <AlertCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                           <AlertTitle>{state.error ? 'Error' : 'Success'}</AlertTitle>
+                           <AlertTitle>{state.error ? 'Validation Failed' : 'Success'}</AlertTitle>
                            <AlertDescription>
                               {state.message}
                            </AlertDescription>

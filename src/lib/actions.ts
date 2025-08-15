@@ -303,7 +303,7 @@ export async function shuffleCommentsAction(
   prevState: ShuffleState,
   formData: FormData
 ): Promise<ShuffleState> {
-  await initializeDb();
+  
   console.log('Shuffle comments action initiated.');
   
   try {
@@ -440,7 +440,7 @@ export async function getChannelVideos(channelId: string) {
 
 export async function getApiKeyAction() {
     try {
-        await initializeDb();
+        
         const userId = await getUserIdFromSession();
         if (!userId) {
             console.warn('getApiKeyAction called without authenticated user.');
@@ -461,8 +461,24 @@ type UpdateApiKeyActionState = {
     apiKey: string | null;
 }
 
+async function validateApiKey(apiKey: string): Promise<boolean> {
+    try {
+        const youtube = google.youtube({ version: 'v3', auth: apiKey });
+        // Make a simple, low-quota-cost call to check if the key is valid.
+        await youtube.search.list({
+            part: ['id'],
+            q: 'test',
+            maxResults: 1,
+        });
+        return true;
+    } catch (error: any) {
+        console.warn(`API key validation failed: ${error.message}`);
+        return false;
+    }
+}
+
 export async function updateApiKeyAction(prevState: UpdateApiKeyActionState | null, formData: FormData): Promise<UpdateApiKeyActionState> {
-    await initializeDb();
+    
     const apiKey = formData.get('apiKey') as string;
     const validation = ApiKeySchema.safeParse(apiKey);
 
@@ -471,19 +487,24 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState | nu
         return { error: true, message: validation.error.flatten().formErrors[0], apiKey: null };
     }
     
-    try {
-        const userId = await getUserIdFromSession();
-        if (!userId) {
-            console.error("Update API Key failed: User not authenticated.");
-            return { error: true, message: 'Authentication failed. Please sign in again.', apiKey: null };
-        }
+    const userId = await getUserIdFromSession();
+    if (!userId) {
+        console.error("Update API Key failed: User not authenticated.");
+        return { error: true, message: 'Authentication failed. Please sign in again.', apiKey: null };
+    }
 
+    const isValid = await validateApiKey(apiKey);
+    if (!isValid) {
+        return { error: true, message: 'The provided API Key is invalid or does not have YouTube Data API v3 enabled.', apiKey: null };
+    }
+    
+    try {
         console.log(`Updating API key for user ${userId}...`);
         await db.query`
             UPDATE user_settings SET "youtubeApiKey" = ${apiKey} WHERE "userId" = ${userId}
         `;
         console.log(`API key for user ${userId} updated successfully.`);
-        return { error: false, message: 'API Key updated successfully.', apiKey: apiKey };
+        return { error: false, message: 'API Key validated and saved successfully.', apiKey: apiKey };
     } catch(e) {
         console.error("Error in updateApiKeyAction:", e);
         return { error: true, message: 'An unexpected server error occurred while saving the key.', apiKey: null };
