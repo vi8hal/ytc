@@ -77,12 +77,6 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
         <CardDescription>Search for and select the YouTube channels you want to target.</CardDescription>
       </CardHeader>
       <CardContent>
-        {disabled ? (
-            <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>Please provide a valid YouTube API key in Step 1 to enable channel search.</AlertDescription>
-            </Alert>
-        ) : (
           <div className='space-y-4'>
             <div className="relative">
                 <div className="relative">
@@ -92,11 +86,12 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
+                        disabled={disabled}
                     />
                     {isLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
                 </div>
 
-                {(searchResults.length > 0 || error || (searchQuery.length >= 3 && !isLoading)) && (
+                {searchQuery.length > 0 && (
                     <div className="absolute top-full z-10 mt-2 w-full rounded-md border bg-popover text-popover-foreground shadow-lg">
                         <ul className="max-h-60 overflow-y-auto p-1">
                             {error && <li className="p-2 text-sm text-destructive">{error}</li>}
@@ -118,6 +113,13 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
                     </div>
                 )}
             </div>
+
+            {disabled && (
+                 <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>Please provide a valid YouTube API key in Step 1 to enable channel search.</AlertDescription>
+                </Alert>
+            )}
             
             {selectedChannels.length > 0 && (
               <div className='space-y-2'>
@@ -136,7 +138,6 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
               </div>
             )}
           </div>
-        )}
       </CardContent>
     </Card>
   );
