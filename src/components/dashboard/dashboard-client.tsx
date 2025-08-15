@@ -34,7 +34,8 @@ export function DashboardClient() {
         if (result?.apiKey) {
             setApiKey(result.apiKey);
         } else if (result?.error) {
-            toast({ title: 'Could not load API key', description: result.error, variant: 'destructive' });
+            // Do not toast here as it can be confusing for new users without a key yet.
+            console.log("No API key found or error fetching it:", result.error);
         }
       } catch (error) {
         console.error("Failed to fetch API key", error);
