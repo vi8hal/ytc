@@ -495,7 +495,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
     }
 }
 
-export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, formData: FormData): Promise<UpdateApiKeyActionState> {
+export async function updateApiKeyAction(prevState: any, formData: FormData): Promise<UpdateApiKeyActionState> {
     try {
         const apiKey = formData.get('apiKey') as string;
         const validation = ApiKeySchema.safeParse(apiKey);
@@ -534,5 +534,3 @@ export async function updateApiKeyAction(prevState: UpdateApiKeyActionState, for
         return { error: true, message: errorMessage };
     }
 }
-
-    
