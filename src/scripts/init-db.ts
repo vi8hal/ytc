@@ -1,3 +1,4 @@
+
 // This script is used to initialize the database tables from the command line.
 // It is crucial that dotenv.config() is called before any other imports
 // that might depend on environment variables.
