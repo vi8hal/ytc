@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
-import { db } from '@/lib/db';
+import { db, getClient } from '@/lib/db';
 import { createSessionToken, createVerificationToken, verifyVerificationToken } from '@/lib/auth';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, NameSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
@@ -34,7 +34,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     }
     
     const { name, email, password } = validation.data;
-    const client = await db.getClient();
+    const client = await getClient();
 
     try {
         await client.query('BEGIN');

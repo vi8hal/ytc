@@ -56,7 +56,6 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
     
     const client = await getClient();
     try {
-        // Using ON CONFLICT is the standard "upsert" pattern in PostgreSQL
         await client.query(
             `INSERT INTO user_settings ("userId", "youtubeApiKey") 
              VALUES ($1, $2)
@@ -85,7 +84,7 @@ export async function getApiKeyAction(): Promise<{ apiKey: string | null, error:
             return { apiKey: null, error: 'User not authenticated' };
         }
         const result = await client.query('SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = $1', [userId]);
-        const apiKey = result.rows[0]?.youtubeapikey;
+        const apiKey = result.rows[0]?.youtubeApiKey;
         return { apiKey: apiKey || null, error: null };
     } catch (error) {
         console.error("Error in getApiKeyAction:", error);
