@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
-import { db, getClient } from '@/lib/db';
+import { getClient } from '@/lib/db';
 import { createSessionToken, createVerificationToken, verifyVerificationToken } from '@/lib/auth';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, NameSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
@@ -40,9 +40,33 @@ export async function signUpAction(prevState: any, formData: FormData) {
         await client.query('BEGIN');
         
         const existingUserResult = await client.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (existingUserResult.rowCount > 0) {
-            await client.query('ROLLBACK');
-            return { error: 'An account with this email already exists.' };
+        const existingUser = existingUserResult.rows[0];
+
+        if (existingUser) {
+            if (existingUser.verified) {
+                await client.query('ROLLBACK');
+                return { error: 'An account with this email already exists.' };
+            } else {
+                // User exists but is not verified, treat as a re-verification attempt.
+                const otp = await generateAndSaveOtp(email);
+                await sendVerificationEmail(
+                    email, 
+                    otp,
+                    'Your ChronoComment Verification Code',
+                    `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+                        <h2>Welcome Back to ChronoComment!</h2>
+                        <p>Your new one-time verification code is:</p>
+                        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                        <p style="color: #666;">This code will expire in 10 minutes.</p>
+                    </div>`
+                );
+
+                const verificationToken = await createVerificationToken({ email });
+                cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+                
+                await client.query('COMMIT');
+                redirect('/verify-otp');
+            }
         }
 
         const hashedPassword = bcrypt.hashSync(password, 10);
@@ -99,8 +123,10 @@ export async function signInAction(prevState: any, formData: FormData) {
   const { email, password } = validation.data;
 
   try {
-    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const client = await getClient();
+    const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
+    client.release();
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return { error: 'Invalid email or password.' };
@@ -157,25 +183,30 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             return { error: 'Invalid verification token. Please try again.' };
         }
         
-        const result = await db.query('SELECT * FROM users WHERE email = $1', [payload.email]);
+        const client = await getClient();
+        const result = await client.query('SELECT * FROM users WHERE email = $1', [payload.email]);
         const user = result.rows[0];
 
         if (!user) {
+            client.release();
             return { error: 'User not found. Please try signing up again.' };
         }
         
         if (user.otp !== otp) {
+          client.release();
           return { error: 'The entered code is incorrect.' };
         }
 
         if (!user.otpExpires || new Date() > new Date(user.otpExpires)) {
+          client.release();
           return { error: 'This OTP has expired. Please request a new one.' };
         }
         
-        await db.query(
+        await client.query(
             'UPDATE users SET verified = TRUE, otp = NULL, "otpExpires" = NULL WHERE email = $1',
             [user.email]
         );
+        client.release();
 
         cookies().delete('verification_token');
         const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
@@ -224,3 +255,5 @@ export async function logOutAction() {
     cookies().delete('session_token');
     redirect('/signin');
 }
+
+    
