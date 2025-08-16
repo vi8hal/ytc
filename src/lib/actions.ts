@@ -166,8 +166,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     await initializeDb();
     console.log('Sign-up action initiated.');
 
-    const rawData = Object.fromEntries(formData.entries());
-    const validation = SignUpSchema.safeParse(rawData);
+    const validation = SignUpSchema.safeParse(Object.fromEntries(formData.entries()));
 
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
@@ -176,7 +175,6 @@ export async function signUpAction(prevState: any, formData: FormData) {
         return { error: errorMessage };
     }
     
-    // Create a new object with the validated data to avoid modifying the frozen form data
     const { name, email, password } = validation.data;
 
     const client = await db.getClient();
