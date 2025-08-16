@@ -3,6 +3,9 @@ import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { Pool } from '@neondatabase/serverless';
 
+// Disable WebSockets to prevent connectivity issues in some environments
+neonConfig.wsProxy = false;
+
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is not set');
 }
