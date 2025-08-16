@@ -88,7 +88,9 @@ export default function SignUpPage() {
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input id="password" name="password" type="password" required className="pl-10" minLength={8} />
               </div>
-               <p className="text-xs text-muted-foreground">Password must be at least 8 characters long.</p>
+               <p className="text-xs text-muted-foreground">
+                Must be 8+ characters and include an uppercase, lowercase, number, and special character.
+               </p>
             </div>
             <SubmitButton />
           </form>

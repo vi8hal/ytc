@@ -22,7 +22,11 @@ import type { ShuffleCommentsInput, ShuffleCommentsOutput } from '@/ai/flows/shu
 // --- Zod Schemas for Validation ---
 
 const EmailSchema = z.string().email({ message: 'Invalid email address.' });
-const PasswordSchema = z.string().min(8, { message: 'Password must be at least 8 characters long.' });
+const PasswordSchema = z.string()
+  .min(8, { message: 'Password must be at least 8 characters long.' })
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/, {
+      message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.'
+  });
 const ApiKeySchema = z.string().min(1, { message: 'API Key cannot be empty.' });
 const NameSchema = z.string().min(2, { message: 'Name must be at least 2 characters long.' });
 const OTPSchema = z.string().length(6, { message: 'OTP must be 6 digits.' });
@@ -58,8 +62,8 @@ async function sendVerificationEmail(email: string, otp: string, subject: string
   try {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
-        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
+        port: Number(process.env.EMAIL_SERVER_port) || 587,
+        secure: Number(process.env.EMAIL_SERVER_port) === 465,
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD,
