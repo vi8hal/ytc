@@ -173,8 +173,8 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         }
         
         await db.query(
-            'UPDATE users SET verified = $1, otp = $2, "otpExpires" = $3 WHERE email = $4',
-            [true, null, null, user.email]
+            'UPDATE users SET verified = TRUE, otp = NULL, "otpExpires" = NULL WHERE email = $1',
+            [user.email]
         );
 
         cookies().delete('verification_token');
