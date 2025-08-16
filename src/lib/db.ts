@@ -1,27 +1,25 @@
 
-import { neon, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
-import { Pool } from '@neondatabase/serverless';
-
-// Disable WebSockets to prevent connectivity issues in some environments
-neonConfig.wsProxy = false;
+import { db as vercelDb, VercelPoolClient, sql } from '@vercel/postgres';
 
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is not set');
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// We are exporting the vercelDb instance directly as 'db',
+// and it provides the 'query' method that the rest of the app expects.
+export const db = vercelDb;
 
-export const db = {
-  query: (text: string, params?: any[]) => pool.query(text, params),
-  getClient: () => pool.connect(),
-};
+export async function getClient(): Promise<VercelPoolClient> {
+    // Vercel's driver manages connections automatically, but for transactions,
+    // we need to explicitly get a client from the pool.
+    return vercelDb.connect();
+}
 
 
 export async function initializeDb() {
-    const client = await db.getClient();
     try {
-        await client.query(`
+        // Use the raw 'sql' template literal from @vercel/postgres
+        await sql`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
@@ -31,21 +29,19 @@ export async function initializeDb() {
                 otp VARCHAR(10),
                 "otpExpires" TIMESTAMP
             );
-        `);
+        `;
         
-        await client.query(`
+        await sql`
             CREATE TABLE IF NOT EXISTS user_settings (
                 id SERIAL PRIMARY KEY,
                 "userId" INTEGER UNIQUE NOT NULL,
                 "youtubeApiKey" VARCHAR(255),
                 FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
             );
-        `);
+        `;
         console.log('Database tables initialized or already exist.');
     } catch (error) {
         console.error('Error during database initialization:', error);
         throw error;
-    } finally {
-        client.release();
     }
 }

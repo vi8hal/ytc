@@ -4,7 +4,7 @@
 import { google } from 'googleapis';
 import { z } from 'zod';
 import { getUserIdFromSession } from "@/lib/utils/auth-helpers";
-import { db } from "@/lib/db";
+import { getClient } from "@/lib/db";
 
 const ApiKeySchema = z.string().min(1, { message: 'API Key cannot be empty.' });
 
@@ -54,27 +54,20 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
         return { error: true, message: message };
     }
     
-    const client = await db.getClient();
+    const client = await getClient();
     try {
-        await client.query('BEGIN');
-        
-        const updateResult = await client.query(
-            'UPDATE user_settings SET "youtubeApiKey" = $1 WHERE "userId" = $2',
-            [apiKey, userId]
+        // Using ON CONFLICT is the standard "upsert" pattern in PostgreSQL
+        await client.query(
+            `INSERT INTO user_settings ("userId", "youtubeApiKey") 
+             VALUES ($1, $2)
+             ON CONFLICT ("userId") 
+             DO UPDATE SET "youtubeApiKey" = EXCLUDED."youtubeApiKey"`,
+            [userId, apiKey]
         );
-
-        if (updateResult.rowCount === 0) {
-            await client.query(
-                'INSERT INTO user_settings ("userId", "youtubeApiKey") VALUES ($1, $2)',
-                [userId, apiKey]
-            );
-        }
         
-        await client.query('COMMIT');
         return { error: false, message: 'API Key has been successfully validated and saved.', apiKey: apiKey };
 
     } catch(e) {
-        await client.query('ROLLBACK');
         console.error("Error saving API Key:", e);
         const errorMessage = 'An unexpected server error occurred while saving the key.';
         return { error: true, message: errorMessage };
@@ -85,16 +78,19 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
 
 
 export async function getApiKeyAction(): Promise<{ apiKey: string | null, error: string | null }> {
+    const client = await getClient();
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
             return { apiKey: null, error: 'User not authenticated' };
         }
-        const result = await db.query('SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = $1', [userId]);
-        const apiKey = result.rows[0]?.youtubeApiKey;
+        const result = await client.query('SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = $1', [userId]);
+        const apiKey = result.rows[0]?.youtubeapikey;
         return { apiKey: apiKey || null, error: null };
     } catch (error) {
         console.error("Error in getApiKeyAction:", error);
         return { apiKey: null, error: 'Failed to retrieve API key from the database.' };
+    } finally {
+        client.release();
     }
 }
