@@ -1,16 +1,17 @@
 
 // This script is used to initialize the database tables from the command line.
-import { initializeDb } from '../lib/db';
+// It is crucial that dotenv.config() is called before any other imports
+// that might depend on environment variables.
 import { config } from 'dotenv';
-import { neon, neonConfig } from '@neondatabase/serverless';
-
 config({ path: '.env.local' });
 config();
+
+import { initializeDb } from '../lib/db';
 
 async function main() {
     console.log('Starting database initialization...');
     if (!process.env.DATABASE_URL) {
-        throw new Error('DATABASE_URL is not set. Please check your .env file.');
+        throw new Error('DATABASE_URL is not set. Please check your .env file and ensure it is loaded correctly.');
     }
     try {
         await initializeDb();
