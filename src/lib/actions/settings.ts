@@ -22,7 +22,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
             q: 'test',
             maxResults: 1,
         });
-        return { isValid: true, message: 'API Key is valid.' };
+        return { isValid: true, message: 'API Key is valid and has been saved.' };
     } catch (error: any) {
         if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
             return { isValid: false, message: 'The provided API Key does not have the YouTube Data API v3 service enabled.' };
@@ -30,6 +30,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
          if (error.code === 400 || (error.errors && (error.errors[0]?.reason === 'keyInvalid' || error.errors[0]?.reason === 'badRequest'))) {
             return { isValid: false, message: 'The provided API Key is malformed or invalid.' };
         }
+        console.error("API Key Validation Error:", error);
         return { isValid: false, message: 'Could not validate the API Key due to an unexpected error.' };
     }
 }
@@ -74,7 +75,8 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
 
     } catch(e) {
         await client.query('ROLLBACK');
-        const errorMessage = e instanceof Error ? e.message : 'An unexpected server error occurred while saving the key.';
+        console.error("Error saving API Key:", e);
+        const errorMessage = 'An unexpected server error occurred while saving the key.';
         return { error: true, message: errorMessage };
     } finally {
         client.release();
