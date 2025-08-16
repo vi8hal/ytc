@@ -1,12 +1,19 @@
 
-import { sql } from '@vercel/postgres';
-import { db as vercelDb } from '@vercel/postgres';
+import { neon, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool } from '@neondatabase/serverless';
 
-// A simple client for interacting with the database
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is not set');
+}
+
+const client = new Pool({ connectionString: process.env.DATABASE_URL });
+
 export const db = {
-  query: sql,
-  getClient: () => vercelDb.connect(),
+  query: (text: string, params?: any[]) => client.query(text, params),
+  getClient: () => client.connect(),
 };
+
 
 export async function initializeDb() {
     const client = await db.getClient();
@@ -33,8 +40,8 @@ export async function initializeDb() {
         `);
         console.log('Database tables initialized or already exist.');
     } catch (error) {
-        // Don't throw during init, just log. The app might still work.
         console.error('Error during database initialization:', error);
+        throw error;
     } finally {
         client.release();
     }

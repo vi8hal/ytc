@@ -13,7 +13,7 @@ import { Logo } from "@/components/logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { LogOut, PanelLeft } from "lucide-react"
-import { logOutAction } from "@/lib/actions";
+import { logOutAction } from "@/lib/actions/auth";
 
 export default function DashboardLayout({
   children,

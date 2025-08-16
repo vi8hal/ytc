@@ -16,20 +16,17 @@ export async function middleware(request: NextRequest) {
   // --- Handle Protected Routes ---
   if (isProtectedRoute) {
     if (!sessionToken) {
-      console.log(`No session token, redirecting from protected route ${pathname} to /signin`);
       return NextResponse.redirect(new URL('/signin', request.url));
     }
     
     try {
       const payload = await verifySessionToken(sessionToken);
       if (!payload) {
-          console.log(`Invalid session token, redirecting from protected route ${pathname} to /signin`);
           const response = NextResponse.redirect(new URL('/signin', request.url));
           response.cookies.delete('session_token');
           return response;
       }
     } catch(e) {
-       console.log(`Token verification error, redirecting from protected route ${pathname} to /signin`);
        const response = NextResponse.redirect(new URL('/signin', request.url));
        response.cookies.delete('session_token');
        return response;
@@ -42,13 +39,10 @@ export async function middleware(request: NextRequest) {
         try {
             const payload = await verifySessionToken(sessionToken);
             if (payload) {
-                // If user is logged in, redirect them away from auth pages to the dashboard.
-                // Exception: Allow access to /verify-otp if they have a verification_token,
-                // which can happen in a re-verification flow.
+                // Allow access to /verify-otp if they have a verification_token,
                 if (pathname === '/verify-otp' && request.cookies.has('verification_token')) {
                     return NextResponse.next();
                 }
-                console.log(`Logged-in user tried to access auth route ${pathname}, redirecting to /dashboard`);
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
         } catch (e) {
@@ -58,10 +52,8 @@ export async function middleware(request: NextRequest) {
   }
   
   // --- Special Case for /verify-otp ---
-  // Ensure the /verify-otp page is only accessible if a verification_token exists.
-  // This prevents users from navigating to it directly without initiating a sign-up or sign-in.
+  // Prevent direct navigation to /verify-otp without a token
   if (pathname === '/verify-otp' && !request.cookies.has('verification_token')) {
-    console.log('User tried to access /verify-otp without a verification token, redirecting to /signup');
     return NextResponse.redirect(new URL('/signup', request.url));
   }
 

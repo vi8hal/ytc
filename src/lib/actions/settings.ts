@@ -1,0 +1,84 @@
+
+'use server';
+
+import { google } from 'googleapis';
+import { z } from 'zod';
+import { getUserIdFromSession } from "@/lib/utils/auth-helpers";
+import { db } from "@/lib/db";
+
+const ApiKeySchema = z.string().min(1, { message: 'API Key cannot be empty.' });
+
+export type UpdateApiKeyActionState = {
+    message: string | null;
+    error: boolean;
+    apiKey?: string | null;
+}
+
+async function validateApiKey(apiKey: string): Promise<{isValid: boolean, message: string}> {
+    try {
+        const youtube = google.youtube({ version: 'v3', auth: apiKey });
+        await youtube.search.list({
+            part: ['id'],
+            q: 'test',
+            maxResults: 1,
+        });
+        return { isValid: true, message: 'API Key is valid.' };
+    } catch (error: any) {
+        if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
+            return { isValid: false, message: 'The provided API Key does not have the YouTube Data API v3 service enabled.' };
+        }
+         if (error.code === 400 || (error.errors && (error.errors[0]?.reason === 'keyInvalid' || error.errors[0]?.reason === 'badRequest'))) {
+            return { isValid: false, message: 'The provided API Key is malformed or invalid.' };
+        }
+        return { isValid: false, message: 'Could not validate the API Key due to an unexpected error.' };
+    }
+}
+
+export async function updateApiKeyAction(prevState: any, formData: FormData): Promise<UpdateApiKeyActionState> {
+    const userId = await getUserIdFromSession();
+    if (!userId) {
+        return { error: true, message: 'Authentication failed. Please sign in again.' };
+    }
+
+    try {
+        const apiKey = formData.get('apiKey') as string;
+        const validation = ApiKeySchema.safeParse(apiKey);
+
+        if (!validation.success) {
+            const errorMessage = validation.error.flatten().formErrors[0]
+            return { error: true, message: errorMessage };
+        }
+        
+        const { isValid, message } = await validateApiKey(apiKey);
+        if (!isValid) {
+            return { error: true, message: message };
+        }
+        
+        await db.query(
+            'INSERT INTO user_settings ("userId", "youtubeApiKey") VALUES ($1, $2) ON CONFLICT ("userId") DO UPDATE SET "youtubeApiKey" = EXCLUDED."youtubeApiKey"',
+            [userId, apiKey]
+        );
+
+        return { error: false, message: 'API Key has been successfully validated and saved.', apiKey: apiKey };
+
+    } catch(e) {
+        const errorMessage = e instanceof Error ? e.message : 'An unexpected server error occurred while saving the key.';
+        return { error: true, message: errorMessage };
+    }
+}
+
+
+export async function getApiKeyAction(): Promise<{ apiKey: string | null, error: string | null }> {
+    try {
+        const userId = await getUserIdFromSession();
+        if (!userId) {
+            return { apiKey: null, error: 'User not authenticated' };
+        }
+        const result = await db.query('SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = $1', [userId]);
+        const apiKey = result.rows[0]?.youtubeApiKey;
+        return { apiKey: apiKey || null, error: null };
+    } catch (error) {
+        console.error("Error in getApiKeyAction:", error);
+        return { apiKey: null, error: 'Failed to retrieve API key from the database.' };
+    }
+}

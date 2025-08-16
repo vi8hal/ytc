@@ -1,21 +1,23 @@
+
 // This script is used to initialize the database tables from the command line.
 import { initializeDb } from '../lib/db';
 import { config } from 'dotenv';
+import { neon, neonConfig } from '@neondatabase/serverless';
 
-// Load environment variables from .env file
-config({ path: '.env' });
+config({ path: '.env.local' });
+config();
 
 async function main() {
     console.log('Starting database initialization...');
+    if (!process.env.DATABASE_URL) {
+        throw new Error('DATABASE_URL is not set. Please check your .env file.');
+    }
     try {
-        // The initializeDb function contains the CREATE TABLE IF NOT EXISTS queries.
         await initializeDb();
         console.log('Database initialization completed successfully.');
-        // Exit the process cleanly.
         process.exit(0);
     } catch (error) {
         console.error('Failed to initialize the database:', error);
-        // Exit with an error code if something goes wrong.
         process.exit(1);
     }
 }

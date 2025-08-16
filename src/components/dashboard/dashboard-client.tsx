@@ -2,13 +2,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
+import type { CampaignOutput } from '@/ai/flows/run-campaign';
 import { ChannelSearch } from './channel-search';
 import { VideoSelection } from './video-selection';
 import { CommentForm } from './comment-form';
 import { ResultsTimeline } from './results-timeline';
 import { Separator } from '@/components/ui/separator';
-import { getChannelVideos, getApiKeyAction } from '@/lib/actions';
+import { getChannelVideos } from '@/lib/actions/youtube';
+import { getApiKeyAction } from '@/lib/actions/settings';
 import { ApiKeySetup } from './api-key-setup';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,7 +25,7 @@ export function DashboardClient() {
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [selectedVideos, setSelectedVideos] = useState<Video[]>([]);
-  const [shuffleResults, setShuffleResults] = useState<ShuffleCommentsOutput['results'] | null>(null);
+  const [campaignResults, setCampaignResults] = useState<CampaignOutput['results'] | null>(null);
 
   const fetchApiKey = useCallback(async () => {
     setIsApiKeyLoading(true);
@@ -73,7 +74,6 @@ export function DashboardClient() {
 
         setVideos(videosWithChannelInfo);
       } catch (error: any) {
-        console.error("Failed to fetch videos:", error);
         setVideoError(error.message || 'An unknown error occurred.');
         setVideos([]);
       } finally {
@@ -86,20 +86,18 @@ export function DashboardClient() {
 
   const handleSetChannels = (channels: Channel[]) => {
     setSelectedChannels(channels);
-    // Reset downstream state
     setVideos([]);
     setSelectedVideos([]);
-    setShuffleResults(null);
+    setCampaignResults(null);
     setVideoError(null);
   };
 
-  const handleShuffleComplete = (results: ShuffleCommentsOutput['results']) => {
-    setShuffleResults(results);
+  const handleCampaignComplete = (results: CampaignOutput['results']) => {
+    setCampaignResults(results);
   };
   
   const handleApiKeyUpdate = (newApiKey: string) => {
     setApiKey(newApiKey);
-    // Reset downstream state
     handleSetChannels([]);
   }
 
@@ -132,14 +130,14 @@ export function DashboardClient() {
       <div className="lg:col-span-1 space-y-8 sticky top-24">
         <CommentForm 
             selectedVideos={selectedVideos}
-            onShuffleComplete={handleShuffleComplete}
+            onCampaignComplete={handleCampaignComplete}
         />
       </div>
       
-      {shuffleResults && shuffleResults.length > 0 && (
+      {campaignResults && campaignResults.length > 0 && (
         <div className="lg:col-span-3">
             <Separator className="my-8" />
-            <ResultsTimeline results={shuffleResults} />
+            <ResultsTimeline results={campaignResults} />
         </div>
       )}
     </div>

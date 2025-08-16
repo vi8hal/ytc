@@ -1,0 +1,79 @@
+
+'use server';
+
+import { google } from 'googleapis';
+import { getApiKeyAction } from './settings';
+
+async function getApiKeyForCurrentUser(): Promise<string> {
+    try {
+        const { apiKey, error } = await getApiKeyAction();
+        if (error || !apiKey) {
+            throw new Error(error || 'YouTube API Key not configured. Please add it in settings.');
+        }
+        return apiKey;
+    } catch(e) {
+        console.error("Failed to get API key for current user:", e);
+        throw e;
+    }
+}
+
+
+export async function searchChannels(query: string) {
+  if (!query) return [];
+  try {
+    const apiKey = await getApiKeyForCurrentUser();
+    const youtube = google.youtube({ version: 'v3', auth: apiKey });
+
+    const response = await youtube.search.list({
+      part: ['snippet'],
+      q: query,
+      type: ['channel'],
+      maxResults: 10,
+    });
+
+    const channels = response.data.items?.map(item => ({
+      id: item.id?.channelId || '',
+      name: item.snippet?.title || 'Untitled Channel',
+      thumbnail: item.snippet?.thumbnails?.default?.url || `https://placehold.co/88x88.png`,
+    })).filter(c => c.id) || [];
+    
+    return channels;
+
+  } catch (error: any) {
+    if (error.code === 400 && error.errors?.[0]?.reason === 'keyInvalid') {
+        throw new Error('Your YouTube API Key is invalid. Please check it in the Google Cloud Console and save it again.');
+    }
+     if (error.message.includes('User not authenticated') || error.message.includes('YouTube API Key not configured')) {
+      throw error;
+    }
+    throw new Error('Failed to search for channels. Please check your API key and permissions.');
+  }
+}
+
+export async function getChannelVideos(channelId: string) {
+  if (!channelId) return [];
+  try {
+    const apiKey = await getApiKeyForCurrentUser();
+    const youtube = google.youtube({ version: 'v3', auth: apiKey });
+
+    const response = await youtube.search.list({
+      part: ['snippet'],
+      channelId: channelId,
+      type: ['video'],
+      maxResults: 20,
+      order: 'date',
+    });
+
+    const videos = response.data.items?.map(item => ({
+      id: item.id?.videoId || '',
+      title: item.snippet?.title || 'Untitled Video',
+    })).filter(v => v.id) || [];
+    
+    return videos;
+  } catch (error: any) {
+     if (error.code === 400 && error.errors?.[0]?.reason === 'keyInvalid') {
+        throw new Error('Your YouTube API Key is invalid. Please check it in the Google Cloud Console and save it again.');
+    }
+    throw new Error('Failed to fetch videos. The selected channel may have disabled API access or your API key is invalid.');
+  }
+}

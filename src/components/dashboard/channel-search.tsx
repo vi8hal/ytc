@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { searchChannels } from '@/lib/actions';
+import { searchChannels } from '@/lib/actions/youtube';
 import type { Channel } from './dashboard-client';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
@@ -43,7 +43,6 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
           result => !selectedChannels.some(selected => selected.id === result.id)
         ));
       } catch (error: any) {
-        console.error('Failed to search channels:', error);
         setError(error.message || 'An unknown error occurred.');
         setSearchResults([]);
       } finally {

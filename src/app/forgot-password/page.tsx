@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useToast } from '@/hooks/use-toast';
-import { forgotPasswordAction } from '@/lib/actions';
+import { forgotPasswordAction } from '@/lib/actions/password';
 import { Separator } from '@/components/ui/separator';
 
 function SubmitButton() {

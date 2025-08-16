@@ -3,11 +3,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
+import type { CampaignOutput } from '@/ai/flows/run-campaign';
 import { CheckCircle2 } from 'lucide-react';
 
 interface ResultsTimelineProps {
-  results: ShuffleCommentsOutput['results'];
+  results: CampaignOutput['results'];
 }
 
 export function ResultsTimeline({ results }: ResultsTimelineProps) {

@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { verifyOtpAction } from '@/lib/actions';
+import { verifyOtpAction } from '@/lib/actions/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function SubmitButton() {
@@ -71,5 +71,3 @@ export default function VerifyOtpPage() {
     </div>
   );
 }
-
-    

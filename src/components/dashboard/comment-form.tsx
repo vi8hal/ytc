@@ -8,16 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { shuffleCommentsAction } from '@/lib/actions';
+import { runCampaignAction } from '@/lib/actions/campaign';
 import { useToast } from '@/hooks/use-toast';
 import type { Video } from './dashboard-client';
-import type { ShuffleCommentsOutput } from '@/ai/flows/shuffle-comments';
+import type { CampaignOutput } from '@/ai/flows/run-campaign';
 import { Bot, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface CommentFormProps {
   selectedVideos: Video[];
-  onShuffleComplete: (results: ShuffleCommentsOutput['results']) => void;
+  onCampaignComplete: (results: CampaignOutput['results']) => void;
 }
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
@@ -27,23 +27,23 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Shuffling...
+          Running Campaign...
         </>
       ) : (
         <>
           <Bot className="mr-2 h-4 w-4" />
-          Shuffle & Send Comments
+          Run Campaign
         </>
       )}
     </Button>
   );
 }
 
-export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormProps) {
+export function CommentForm({ selectedVideos, onCampaignComplete }: CommentFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const initialState = { data: null, error: null, message: null };
-  const [state, formAction] = useActionState(shuffleCommentsAction, initialState);
+  const [state, formAction] = useActionState(runCampaignAction, initialState);
 
   const isDisabled = selectedVideos.length === 0;
 
@@ -56,10 +56,10 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
       });
     }
     if (!state.error && state.data?.results) {
-      onShuffleComplete(state.data.results);
+      onCampaignComplete(state.data.results);
       formRef.current?.reset();
     }
-  }, [state, toast, onShuffleComplete]);
+  }, [state, toast, onCampaignComplete]);
 
   return (
     <Card className="shadow-lg">
@@ -99,5 +99,3 @@ export function CommentForm({ selectedVideos, onShuffleComplete }: CommentFormPr
     </Card>
   );
 }
-
-    
