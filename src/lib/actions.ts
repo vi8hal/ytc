@@ -172,6 +172,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         return { error: errorMessage };
     }
     
+    // Create a new object with the validated data to avoid modifying the frozen form data
     const { name, email, password } = validation.data;
 
     const client = await db.getClient();
