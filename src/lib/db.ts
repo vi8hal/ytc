@@ -7,11 +7,11 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is not set');
 }
 
-const client = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 export const db = {
-  query: (text: string, params?: any[]) => client.query(text, params),
-  getClient: () => client.connect(),
+  query: (text: string, params?: any[]) => pool.query(text, params),
+  getClient: () => pool.connect(),
 };
 
 

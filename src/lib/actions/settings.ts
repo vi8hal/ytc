@@ -40,30 +40,44 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
         return { error: true, message: 'Authentication failed. Please sign in again.' };
     }
 
-    try {
-        const apiKey = formData.get('apiKey') as string;
-        const validation = ApiKeySchema.safeParse(apiKey);
+    const apiKey = formData.get('apiKey') as string;
+    const validation = ApiKeySchema.safeParse(apiKey);
 
-        if (!validation.success) {
-            const errorMessage = validation.error.flatten().formErrors[0]
-            return { error: true, message: errorMessage };
-        }
+    if (!validation.success) {
+        const errorMessage = validation.error.flatten().formErrors[0]
+        return { error: true, message: errorMessage };
+    }
+    
+    const { isValid, message } = await validateApiKey(apiKey);
+    if (!isValid) {
+        return { error: true, message: message };
+    }
+    
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
         
-        const { isValid, message } = await validateApiKey(apiKey);
-        if (!isValid) {
-            return { error: true, message: message };
-        }
-        
-        await db.query(
-            'INSERT INTO user_settings ("userId", "youtubeApiKey") VALUES ($1, $2) ON CONFLICT ("userId") DO UPDATE SET "youtubeApiKey" = EXCLUDED."youtubeApiKey"',
-            [userId, apiKey]
+        const updateResult = await client.query(
+            'UPDATE user_settings SET "youtubeApiKey" = $1 WHERE "userId" = $2',
+            [apiKey, userId]
         );
 
+        if (updateResult.rowCount === 0) {
+            await client.query(
+                'INSERT INTO user_settings ("userId", "youtubeApiKey") VALUES ($1, $2)',
+                [userId, apiKey]
+            );
+        }
+        
+        await client.query('COMMIT');
         return { error: false, message: 'API Key has been successfully validated and saved.', apiKey: apiKey };
 
     } catch(e) {
+        await client.query('ROLLBACK');
         const errorMessage = e instanceof Error ? e.message : 'An unexpected server error occurred while saving the key.';
         return { error: true, message: errorMessage };
+    } finally {
+        client.release();
     }
 }
 
