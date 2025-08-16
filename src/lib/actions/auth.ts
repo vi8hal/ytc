@@ -190,6 +190,36 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     redirect('/dashboard');
 }
 
+export async function resendOtpAction() {
+    try {
+        const token = cookies().get('verification_token')?.value;
+        if (!token) {
+            return { error: 'Your verification session has expired. Please try signing up or logging in again.' };
+        }
+        const payload: any = await verifyVerificationToken(token);
+        if (!payload || !payload.email) {
+            return { error: 'Invalid verification token. Please try again.' };
+        }
+
+        const otp = await generateAndSaveOtp(payload.email);
+        await sendVerificationEmail(
+            payload.email,
+            otp,
+            'Your New ChronoComment Verification Code',
+            `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+                <h2>Here is Your New Code</h2>
+                <p>Your new one-time verification code is:</p>
+                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                <p style="color: #666;">This code will expire in 10 minutes.</p>
+            </div>`
+        );
+        return { success: 'A new verification code has been sent to your email.' };
+    } catch(e) {
+        console.error("Error in resendOtpAction:", e);
+        return { error: 'An unexpected error occurred while resending the code.' };
+    }
+}
+
 export async function logOutAction() {
     cookies().delete('session_token');
     redirect('/signin');
