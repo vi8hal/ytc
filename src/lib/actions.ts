@@ -166,7 +166,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
     await initializeDb();
     console.log('Sign-up action initiated.');
 
-    const validation = SignUpSchema.safeParse(Object.fromEntries(formData.entries()));
+    // DEFINITIVE FIX: Parse the form data into a new object to avoid "object not extensible" error.
+    const rawData = Object.fromEntries(formData.entries());
+    const validation = SignUpSchema.safeParse(rawData);
 
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
@@ -175,6 +177,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         return { error: errorMessage };
     }
     
+    // Use the validated data, which is a new, safe object.
     const { name, email, password } = validation.data;
 
     const client = await db.getClient();
