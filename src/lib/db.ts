@@ -17,9 +17,10 @@ export async function getClient(): Promise<VercelPoolClient> {
 
 
 export async function initializeDb() {
+    const client = await getClient();
     try {
-        // Use the raw 'sql' template literal from @vercel/postgres
-        await sql`
+        await client.query('BEGIN');
+        await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
@@ -29,19 +30,23 @@ export async function initializeDb() {
                 otp VARCHAR(10),
                 "otpExpires" TIMESTAMP
             );
-        `;
+        `);
         
-        await sql`
+        await client.query(`
             CREATE TABLE IF NOT EXISTS user_settings (
                 id SERIAL PRIMARY KEY,
                 "userId" INTEGER UNIQUE NOT NULL,
                 "youtubeApiKey" VARCHAR(255),
                 FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
             );
-        `;
+        `);
+        await client.query('COMMIT');
         console.log('Database tables initialized or already exist.');
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error during database initialization:', error);
         throw error;
+    } finally {
+        client.release();
     }
 }

@@ -4,7 +4,7 @@
 import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { getClient } from '@/lib/db';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
 
@@ -23,8 +23,9 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
       return { error: true, message: validation.error.flatten().formErrors[0] };
     }
     
+    const client = await getClient();
     try {
-        const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
         const user = result.rows[0];
 
         if (user) {
@@ -44,6 +45,8 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
     } catch(e) {
         console.error("Error in forgot password action:", e);
         // Do not expose internal errors to the client
+    } finally {
+        client.release();
     }
     // Always return a generic message to prevent user enumeration attacks.
     return { error: null, message: 'If an account with that email exists, a reset code has been sent.' };
@@ -60,9 +63,9 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
     }
 
     const { email, otp, password } = validation.data;
-    
+    const client = await getClient();
     try {
-        const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
         const user = result.rows[0];
 
         if (!user) {
@@ -74,7 +77,7 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
         }
 
         const hashedPassword = bcrypt.hashSync(password, 10);
-        await db.query(
+        await client.query(
             'UPDATE users SET password = $1, otp = $2, "otpExpires" = $3, verified = $4 WHERE id = $5',
             [hashedPassword, null, null, true, user.id]
         );
@@ -83,6 +86,8 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
          if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during password reset:', error);
         return { error: 'An unexpected server error occurred.' };
+    } finally {
+        client.release();
     }
 
     redirect('/signin');

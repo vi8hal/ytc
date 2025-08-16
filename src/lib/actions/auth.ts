@@ -70,14 +70,14 @@ export async function signUpAction(prevState: any, formData: FormData) {
         }
 
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
+        
         const newUserResult = await client.query(
-            'INSERT INTO users (name, email, password, verified, otp, "otpExpires") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-            [name, email, hashedPassword, false, otp, otpExpires]
+            'INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, $4) RETURNING id',
+            [name, email, hashedPassword, false]
         );
         const newUserId = newUserResult.rows[0].id;
+
+        const otp = await generateAndSaveOtp(email);
         
         await client.query(
             'INSERT INTO user_settings ("userId") VALUES ($1)',
@@ -121,12 +121,11 @@ export async function signInAction(prevState: any, formData: FormData) {
   }
   
   const { email, password } = validation.data;
+  const client = await getClient();
 
   try {
-    const client = await getClient();
     const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
-    client.release();
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return { error: 'Invalid email or password.' };
@@ -139,7 +138,7 @@ export async function signInAction(prevState: any, formData: FormData) {
           otp, 
           'Your ChronoComment Verification Code',
           `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-            <h2>Welcome to ChronoComment!</h2>
+            <h2>Complete Your Sign-In</h2>
             <p>Your one-time verification code is:</p>
             <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
             <p style="color: #666;">This code will expire in 10 minutes.</p>
@@ -158,6 +157,8 @@ export async function signInAction(prevState: any, formData: FormData) {
     if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
     console.error('An unexpected error occurred during sign-in:', error);
     return { error: 'An unexpected server error occurred. Please try again.' };
+  } finally {
+      client.release();
   }
 
   redirect('/dashboard');
@@ -171,7 +172,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     if (!validation.success) {
         return { error: validation.error.flatten().formErrors[0] };
     }
-
+    const client = await getClient();
     try {
         const token = cookies().get('verification_token')?.value;
         if (!token) {
@@ -183,22 +184,18 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             return { error: 'Invalid verification token. Please try again.' };
         }
         
-        const client = await getClient();
         const result = await client.query('SELECT * FROM users WHERE email = $1', [payload.email]);
         const user = result.rows[0];
 
         if (!user) {
-            client.release();
             return { error: 'User not found. Please try signing up again.' };
         }
         
         if (user.otp !== otp) {
-          client.release();
           return { error: 'The entered code is incorrect.' };
         }
 
         if (!user.otpExpires || new Date() > new Date(user.otpExpires)) {
-          client.release();
           return { error: 'This OTP has expired. Please request a new one.' };
         }
         
@@ -206,7 +203,6 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             'UPDATE users SET verified = TRUE, otp = NULL, "otpExpires" = NULL WHERE email = $1',
             [user.email]
         );
-        client.release();
 
         cookies().delete('verification_token');
         const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
@@ -216,6 +212,8 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during OTP verification:', error);
         return { error: 'An unexpected server error occurred.' };
+    } finally {
+        client.release();
     }
 
     redirect('/dashboard');
