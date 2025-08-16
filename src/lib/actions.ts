@@ -166,7 +166,6 @@ export async function signUpAction(prevState: any, formData: FormData) {
     await initializeDb();
     console.log('Sign-up action initiated.');
 
-    // DEFINITIVE FIX: Parse the form data into a new object to avoid "object not extensible" error.
     const rawData = Object.fromEntries(formData.entries());
     const validation = SignUpSchema.safeParse(rawData);
 
@@ -177,7 +176,6 @@ export async function signUpAction(prevState: any, formData: FormData) {
         return { error: errorMessage };
     }
     
-    // Use the validated data, which is a new, safe object.
     const { name, email, password } = validation.data;
 
     const client = await db.getClient();
@@ -200,10 +198,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
             VALUES (${name}, ${email}, ${hashedPassword}, ${false}, ${otp}, ${otpExpires})
             RETURNING id
         `;
-        const newUserId = newUserResult.rows[0].id;
-
+        
         await client.query`
-            INSERT INTO user_settings ("userId") VALUES (${newUserId});
+            INSERT INTO user_settings ("userId") VALUES (${newUserResult.rows[0].id});
         `;
         console.log(`New user and settings created for email: ${email}`);
 
