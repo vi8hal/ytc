@@ -22,7 +22,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
             q: 'test',
             maxResults: 1,
         });
-        return { isValid: true, message: 'API Key is valid and has been saved.' };
+        return { isValid: true, message: 'credentials are all set' };
     } catch (error: any) {
         if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
             return { isValid: false, message: 'The provided API Key does not have the YouTube Data API v3 service enabled.' };
@@ -64,7 +64,7 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
             [userId, apiKey]
         );
         
-        return { error: false, message: 'API Key has been successfully validated and saved.', apiKey: apiKey };
+        return { error: false, message: message, apiKey: apiKey };
 
     } catch(e) {
         console.error("Error saving API Key:", e);
