@@ -53,7 +53,8 @@ export function ApiKeySetup({ currentApiKey, onApiKeyUpdate, isLoading }: ApiKey
         if (state?.apiKey && !state.error) {
             onApiKeyUpdate(state.apiKey);
         }
-    }, [state, onApiKeyUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state]);
 
 
     if (isLoading) {
