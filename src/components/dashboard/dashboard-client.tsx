@@ -9,7 +9,7 @@ import { CommentForm } from './comment-form';
 import { ResultsTimeline } from './results-timeline';
 import { Separator } from '@/components/ui/separator';
 import { getChannelVideos } from '@/lib/actions/youtube';
-import { getApiKeyAction } from '@/lib/actions/settings';
+import { getAppSettingsAction } from '@/lib/actions/settings';
 import { ApiKeySetup } from './api-key-setup';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,7 +19,8 @@ export type Channel = { id: string; name: string; thumbnail: string; };
 export function DashboardClient() {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState<string | null>(null);
-  const [isApiKeyLoading, setIsApiKeyLoading] = useState(true);
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
+  const [areSettingsLoading, setAreSettingsLoading] = useState(true);
   const [selectedChannels, setSelectedChannels] = useState<Channel[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
@@ -27,27 +28,27 @@ export function DashboardClient() {
   const [selectedVideos, setSelectedVideos] = useState<Video[]>([]);
   const [campaignResults, setCampaignResults] = useState<CampaignOutput['results'] | null>(null);
 
-  const fetchApiKey = useCallback(async () => {
-    setIsApiKeyLoading(true);
+  const fetchAppSettings = useCallback(async () => {
+    setAreSettingsLoading(true);
     try {
-      const result = await getApiKeyAction();
-      if (result?.apiKey) {
-          setApiKey(result.apiKey);
-      } else if (result?.error) {
-          console.log("No API key found or error fetching it:", result.error);
+      const result = await getAppSettingsAction();
+      if (result.settings) {
+          setApiKey(result.settings.apiKey);
+          setIsYouTubeConnected(result.settings.isYouTubeConnected);
+      } else if (result.error) {
+          console.error("Error fetching app settings:", result.error);
       }
     } catch (error) {
-      console.error("Failed to fetch API key", error);
-      toast({ title: 'Error', description: 'An unexpected error occurred while fetching your API key.', variant: 'destructive' });
+      console.error("Failed to fetch app settings", error);
+      toast({ title: 'Error', description: 'An unexpected error occurred while fetching your settings.', variant: 'destructive' });
     } finally {
-      setIsApiKeyLoading(false);
+      setAreSettingsLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchApiKey();
-  }, [fetchApiKey]);
-
+    fetchAppSettings();
+  }, [fetchAppSettings]);
 
   useEffect(() => {
     const fetchVideos = async () => {
@@ -96,9 +97,13 @@ export function DashboardClient() {
     setCampaignResults(results);
   };
   
-  const handleApiKeyUpdate = (newApiKey: string) => {
-    setApiKey(newApiKey);
+  const handleCredentialsUpdate = () => {
+    fetchAppSettings();
     handleSetChannels([]);
+  }
+
+  const handleYouTubeConnectionUpdate = (isConnected: boolean) => {
+    setIsYouTubeConnected(isConnected);
   }
 
   return (
@@ -106,14 +111,16 @@ export function DashboardClient() {
       <div className="lg:col-span-2 space-y-8">
         <ApiKeySetup 
             currentApiKey={apiKey} 
-            onApiKeyUpdate={handleApiKeyUpdate} 
-            isLoading={isApiKeyLoading} 
+            isYouTubeConnected={isYouTubeConnected}
+            onCredentialsUpdate={handleCredentialsUpdate} 
+            onYouTubeConnectionUpdate={handleYouTubeConnectionUpdate}
+            isLoading={areSettingsLoading} 
         />
 
         <ChannelSearch
             onChannelsChange={handleSetChannels}
             selectedChannels={selectedChannels}
-            disabled={!apiKey || isApiKeyLoading}
+            disabled={!apiKey || areSettingsLoading}
         />
         
         <VideoSelection
@@ -131,6 +138,7 @@ export function DashboardClient() {
         <CommentForm 
             selectedVideos={selectedVideos}
             onCampaignComplete={handleCampaignComplete}
+            disabled={!isYouTubeConnected}
         />
       </div>
       

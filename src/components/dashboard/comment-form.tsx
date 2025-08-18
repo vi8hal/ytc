@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '../ui/alert';
 interface CommentFormProps {
   selectedVideos: Video[];
   onCampaignComplete: (results: CampaignOutput['results']) => void;
+  disabled?: boolean;
 }
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
@@ -39,13 +40,13 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function CommentForm({ selectedVideos, onCampaignComplete }: CommentFormProps) {
+export function CommentForm({ selectedVideos, onCampaignComplete, disabled = false }: CommentFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const initialState = { data: null, error: null, message: null };
   const [state, formAction] = useActionState(runCampaignAction, initialState);
 
-  const isDisabled = selectedVideos.length === 0;
+  const isFormDisabled = disabled || selectedVideos.length === 0;
 
   useEffect(() => {
     if (state.message) {
@@ -82,13 +83,19 @@ export function CommentForm({ selectedVideos, onCampaignComplete }: CommentFormP
                 placeholder={`Your brilliant comment #${i}...`}
                 rows={3}
                 required
-                disabled={isDisabled}
+                disabled={isFormDisabled}
               />
             </div>
           ))}
 
-          <SubmitButton disabled={isDisabled} />
-          {isDisabled && (
+          <SubmitButton disabled={isFormDisabled} />
+          {disabled && (
+             <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>Please connect your YouTube account in Step 2 to enable this form.</AlertDescription>
+            </Alert>
+          )}
+          {selectedVideos.length === 0 && !disabled && (
             <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>Please select at least one video in Step 3 to enable this form.</AlertDescription>

@@ -37,6 +37,9 @@ export async function initializeDb() {
                 id SERIAL PRIMARY KEY,
                 "userId" INTEGER UNIQUE NOT NULL,
                 "youtubeApiKey" VARCHAR(255),
+                "googleAccessToken" TEXT,
+                "googleRefreshToken" TEXT,
+                "googleTokenExpiry" TIMESTAMP,
                 FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
             );
         `);

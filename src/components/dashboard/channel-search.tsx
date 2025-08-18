@@ -72,7 +72,7 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-xl">Step 2: Select Channels</CardTitle>
+        <CardTitle className="font-headline text-xl">Step 3: Select Channels</CardTitle>
         <CardDescription>Search for and select the YouTube channels you want to target.</CardDescription>
       </CardHeader>
       <CardContent>

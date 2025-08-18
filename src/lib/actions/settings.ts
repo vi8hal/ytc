@@ -22,7 +22,7 @@ async function validateApiKey(apiKey: string): Promise<{isValid: boolean, messag
             q: 'test',
             maxResults: 1,
         });
-        return { isValid: true, message: 'credentials are all set' };
+        return { isValid: true, message: 'Your API Key is valid and has been saved.' };
     } catch (error: any) {
         if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
             return { isValid: false, message: 'The provided API Key does not have the YouTube Data API v3 service enabled.' };
@@ -75,20 +75,31 @@ export async function updateApiKeyAction(prevState: any, formData: FormData): Pr
     }
 }
 
+type AppSettings = {
+    apiKey: string | null;
+    isYouTubeConnected: boolean;
+};
 
-export async function getApiKeyAction(): Promise<{ apiKey: string | null, error: string | null }> {
+export async function getAppSettingsAction(): Promise<{ settings: AppSettings | null, error: string | null }> {
     const client = await getClient();
     try {
         const userId = await getUserIdFromSession();
         if (!userId) {
-            return { apiKey: null, error: 'User not authenticated' };
+            return { settings: null, error: 'User not authenticated' };
         }
-        const result = await client.query('SELECT "youtubeApiKey" FROM user_settings WHERE "userId" = $1', [userId]);
-        const apiKey = result.rows[0]?.youtubeApiKey;
-        return { apiKey: apiKey || null, error: null };
+        const result = await client.query('SELECT "youtubeApiKey", "googleAccessToken", "googleRefreshToken" FROM user_settings WHERE "userId" = $1', [userId]);
+        const userSettings = result.rows[0];
+
+        const settings: AppSettings = {
+             apiKey: userSettings?.youtubeApiKey || null,
+             isYouTubeConnected: !!(userSettings?.googleAccessToken && userSettings?.googleRefreshToken)
+        }
+        
+        return { settings: settings, error: null };
+
     } catch (error) {
-        console.error("Error in getApiKeyAction:", error);
-        return { apiKey: null, error: 'Failed to retrieve API key from the database.' };
+        console.error("Error in getAppSettingsAction:", error);
+        return { settings: null, error: 'Failed to retrieve app settings from the database.' };
     } finally {
         client.release();
     }
