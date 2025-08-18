@@ -39,22 +39,17 @@ export async function middleware(request: NextRequest) {
         try {
             const payload = await verifySessionToken(sessionToken);
             if (payload) {
-                // Allow access to /verify-otp if they have a verification_token,
-                if (pathname === '/verify-otp' && request.cookies.has('verification_token')) {
+                // If user has a valid session, redirect them from auth pages to the dashboard.
+                // Exception: allow them to visit /verify-otp if they are somehow still on it.
+                if (pathname === '/verify-otp') {
                     return NextResponse.next();
                 }
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
         } catch (e) {
-            // Invalid session token, let them proceed to the auth page.
+            // Invalid session token is fine, let them proceed to the auth page.
         }
     }
-  }
-  
-  // --- Special Case for /verify-otp ---
-  // Prevent direct navigation to /verify-otp without a token
-  if (pathname === '/verify-otp' && !request.cookies.has('verification_token')) {
-    return NextResponse.redirect(new URL('/signup', request.url));
   }
 
   return NextResponse.next();

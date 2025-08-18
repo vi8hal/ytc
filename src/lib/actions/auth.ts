@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
 import { getClient } from '@/lib/db';
-import { createSessionToken, createVerificationToken, verifyVerificationToken } from '@/lib/auth';
+import { createSessionToken } from '@/lib/auth';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, NameSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
 
@@ -20,6 +20,11 @@ const SignUpSchema = z.object({
   name: NameSchema,
   email: EmailSchema,
   password: PasswordSchema,
+});
+
+const VerifyOtpSchema = z.object({
+    email: EmailSchema,
+    otp: OTPSchema
 });
 
 
@@ -60,12 +65,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
                         <p style="color: #666;">This code will expire in 10 minutes.</p>
                     </div>`
                 );
-
-                const verificationToken = await createVerificationToken({ email });
-                cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
                 
                 await client.query('COMMIT');
-                redirect('/verify-otp');
+                redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
             }
         }
 
@@ -96,9 +98,6 @@ export async function signUpAction(prevState: any, formData: FormData) {
             </div>`
         );
         
-        const verificationToken = await createVerificationToken({ email });
-        cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-        
         await client.query('COMMIT');
     
     } catch (error) {
@@ -110,7 +109,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         client.release();
     }
   
-    redirect('/verify-otp');
+    redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
 }
 
 export async function signInAction(prevState: any, formData: FormData) {
@@ -145,9 +144,7 @@ export async function signInAction(prevState: any, formData: FormData) {
           </div>`
       );
 
-      const verificationToken = await createVerificationToken({ email });
-      cookies().set('verification_token', verificationToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-      redirect('/verify-otp');
+      redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
     }
 
     const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
@@ -166,29 +163,32 @@ export async function signInAction(prevState: any, formData: FormData) {
 
 
 export async function verifyOtpAction(prevState: any, formData: FormData) {
-    const otp = formData.get('otp') as string;
-    const validation = OTPSchema.safeParse(otp);
+    const rawData = Object.fromEntries(formData.entries());
+    const validation = VerifyOtpSchema.safeParse(rawData);
 
     if (!validation.success) {
-        return { error: validation.error.flatten().formErrors[0] };
+        const errors = validation.error.flatten().fieldErrors;
+        const errorMessage = Object.values(errors).flat()[0] || 'Invalid input.';
+        return { error: errorMessage };
     }
+    
+    const { email, otp } = validation.data;
     const client = await getClient();
-    try {
-        const token = cookies().get('verification_token')?.value;
-        if (!token) {
-            return { error: 'Your verification session has expired. Please try signing up or logging in again.' };
-        }
 
-        const payload: any = await verifyVerificationToken(token);
-        if (!payload || !payload.email) {
-            return { error: 'Invalid verification token. Please try again.' };
-        }
-        
-        const result = await client.query('SELECT * FROM users WHERE email = $1', [payload.email]);
+    try {
+        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
         const user = result.rows[0];
 
         if (!user) {
-            return { error: 'User not found. Please try signing up again.' };
+            // This case should be rare if the user comes from signup/signin
+            return { error: 'No account found for this email address. Please sign up.' };
+        }
+        
+        if (user.verified) {
+            // If they somehow land here but are already verified, just log them in.
+            const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
+            cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+            redirect('/dashboard');
         }
         
         if (user.otp !== otp) {
@@ -196,7 +196,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         }
 
         if (!user.otpExpires || new Date() > new Date(user.otpExpires)) {
-          return { error: 'This OTP has expired. Please request a new one.' };
+          return { error: 'This OTP has expired. Please request a new one by trying to sign up or sign in again.' };
         }
         
         await client.query(
@@ -204,7 +204,6 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             [user.email]
         );
 
-        cookies().delete('verification_token');
         const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
         cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
 
@@ -219,20 +218,32 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     redirect('/dashboard');
 }
 
-export async function resendOtpAction() {
+export async function resendOtpAction(email: string) {
     try {
-        const token = cookies().get('verification_token')?.value;
-        if (!token) {
-            return { error: 'Your verification session has expired. Please try signing up or logging in again.' };
-        }
-        const payload: any = await verifyVerificationToken(token);
-        if (!payload || !payload.email) {
-            return { error: 'Invalid verification token. Please try again.' };
+        const validation = EmailSchema.safeParse(email);
+        if (!validation.success) {
+            return { error: "Invalid email address." };
         }
 
-        const otp = await generateAndSaveOtp(payload.email);
+        const client = await getClient();
+        let user;
+        try {
+            const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+            user = result.rows[0];
+        } finally {
+            client.release();
+        }
+
+        if (!user) {
+            return { error: 'No user found with this email. Please sign up first.' };
+        }
+        if (user.verified) {
+            return { success: 'This account is already verified. You can sign in.' };
+        }
+
+        const otp = await generateAndSaveOtp(email);
         await sendVerificationEmail(
-            payload.email,
+            email,
             otp,
             'Your New ChronoComment Verification Code',
             `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
@@ -253,5 +264,3 @@ export async function logOutAction() {
     cookies().delete('session_token');
     redirect('/signin');
 }
-
-    
