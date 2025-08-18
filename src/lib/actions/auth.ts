@@ -188,6 +188,10 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             // If they somehow land here but are already verified, just log them in.
             const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
             cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+            
+            // Clean up the stale OTP to prevent future issues.
+            await client.query('UPDATE users SET otp = NULL, "otpExpires" = NULL WHERE id = $1', [user.id]);
+            
             redirect('/dashboard');
         }
         
