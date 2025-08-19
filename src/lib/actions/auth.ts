@@ -51,7 +51,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         if (existingUser) {
             if (existingUser.verified) {
                 await client.query('ROLLBACK');
-                return { error: 'An account with this email already exists and is verified.', showVerificationLink: false };
+                return { error: 'An account with this email already exists and is verified.', showVerificationLink: false, email: null };
             } else {
                 // User exists but is not verified, treat as a re-verification attempt.
                 const otp = await generateAndSaveOtp(client, email);
@@ -100,7 +100,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during sign-up:', error);
-        return { error: 'An unexpected server error occurred.', showVerificationLink: false };
+        return { error: 'An unexpected server error occurred.', showVerificationLink: false, email: null };
     } finally {
         client.release();
     }
@@ -275,3 +275,5 @@ export async function logOutAction() {
     
     redirect('/signin');
 }
+
+    

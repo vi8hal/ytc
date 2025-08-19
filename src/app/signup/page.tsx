@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { ArrowRight, KeyRound, Loader2, Mail, User, ShieldCheck } from 'lucide-react';
@@ -123,3 +123,5 @@ export default function SignUpPage() {
     </div>
   );
 }
+
+    
