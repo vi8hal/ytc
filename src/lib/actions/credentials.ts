@@ -26,13 +26,13 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     const rawData = Object.fromEntries(formData.entries());
     const id = rawData.id ? Number(rawData.id) : undefined;
     
-    // Make secret optional only if it's an update and not provided
-    const finalSchema = CredentialSetSchema.refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
+    // Use a refined schema for this specific action
+    const SaveCredentialSetSchema = CredentialSetSchema.refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
         message: 'Google Client Secret is required for new credentials.',
         path: ['googleClientSecret']
     });
 
-    const validation = finalSchema.safeParse(rawData);
+    const validation = SaveCredentialSetSchema.safeParse(rawData);
 
     if (!validation.success) {
         const error = validation.error.flatten().fieldErrors;
@@ -79,8 +79,8 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
                     "googleRefreshToken" = NULL, 
                     "googleTokenExpiry" = NULL, 
                     "isConnected" = FALSE 
-                 WHERE id = $6`,
-                [credentialName, youtubeApiKey, googleClientId, finalSecret, googleRedirectUri, id]
+                 WHERE id = $6 AND "userId" = $7`,
+                [credentialName, youtubeApiKey, googleClientId, finalSecret, googleRedirectUri, id, userId]
             );
 
         } else {
