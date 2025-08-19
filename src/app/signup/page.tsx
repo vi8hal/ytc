@@ -1,11 +1,10 @@
 
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
-import { ArrowRight, KeyRound, Loader2, Mail, User } from 'lucide-react';
-import { GoogleIcon } from '@/components/icons/google';
+import { ArrowRight, KeyRound, Loader2, Mail, User, ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { signUpAction } from '@/lib/actions/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -36,7 +34,8 @@ function SubmitButton() {
 }
 
 export default function SignUpPage() {
-  const [state, formAction] = useActionState(signUpAction, { error: null });
+  const [state, formAction] = useActionState(signUpAction, { error: null, showVerificationLink: false, email: null });
+  const [email, setEmail] = useState('');
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -50,9 +49,17 @@ export default function SignUpPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {state?.error && (
-              <Alert variant="destructive">
-                  <AlertTitle>Registration Failed</AlertTitle>
-                  <AlertDescription>{state.error}</AlertDescription>
+              <Alert variant={state.showVerificationLink ? 'default' : 'destructive'} className={state.showVerificationLink ? 'border-primary/50' : ''}>
+                  {state.showVerificationLink && <ShieldCheck className="h-4 w-4" />}
+                  <AlertTitle>{state.showVerificationLink ? 'Account Exists' : 'Registration Failed'}</AlertTitle>
+                  <AlertDescription>
+                    {state.error}
+                    {state.showVerificationLink && state.email && (
+                         <Link href={`/verify-otp?email=${encodeURIComponent(state.email)}`} className="font-bold text-primary hover:underline underline-offset-4 ml-1">
+                            Click here to verify.
+                        </Link>
+                    )}
+                  </AlertDescription>
               </Alert>
           )}
 
@@ -68,7 +75,16 @@ export default function SignUpPage() {
               <Label htmlFor="email">Email Address</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="email" name="email" type="email" placeholder="name@example.com" required className="pl-10" />
+                <Input 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  placeholder="name@example.com" 
+                  required 
+                  className="pl-10"
+                  onChange={(e) => setEmail(e.target.value)}
+                  value={email}
+                />
               </div>
             </div>
             <div className="space-y-2">

@@ -36,7 +36,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
         const errorMessage = Object.values(errors).flat()[0] || 'Invalid input.';
-        return { error: errorMessage };
+        return { error: errorMessage, showVerificationLink: false };
     }
     
     const { name, email, password } = validation.data;
@@ -51,7 +51,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         if (existingUser) {
             if (existingUser.verified) {
                 await client.query('ROLLBACK');
-                return { error: 'An account with this email already exists.' };
+                return { error: 'An account with this email already exists and is verified.', showVerificationLink: false };
             } else {
                 // User exists but is not verified, treat as a re-verification attempt.
                 const otp = await generateAndSaveOtp(client, email);
@@ -68,7 +68,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
                 );
                 
                 await client.query('COMMIT');
-                redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
+                // Return a specific state to show the verification link
+                return { error: "This email is already registered but not verified. We've sent a new code.", showVerificationLink: true, email };
             }
         }
 
@@ -99,7 +100,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
         await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during sign-up:', error);
-        return { error: 'An unexpected server error occurred.' };
+        return { error: 'An unexpected server error occurred.', showVerificationLink: false };
     } finally {
         client.release();
     }
@@ -121,7 +122,7 @@ export async function signInAction(prevState: any, formData: FormData) {
     const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
-    if (!user || !bcrypt.compareSync(password, user.password)) {
+    if (!user || !user.password || !bcrypt.compareSync(password, user.password)) {
       return { error: 'Invalid email or password.' };
     }
 
@@ -148,7 +149,9 @@ export async function signInAction(prevState: any, formData: FormData) {
 
   } catch (error) {
     if (error instanceof Error && error.message.includes('NEXT_REDIRECT')){
-        await client.query('ROLLBACK');
+        // The rollback might fail if the transaction was already committed or failed,
+        // but it's safe to try.
+        await client.query('ROLLBACK').catch(e => console.error("Rollback failed in signInAction:", e));
         throw error;
     };
     console.error('An unexpected error occurred during sign-in:', error);
