@@ -38,7 +38,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
                 `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
                     <h2>Password Reset Request</h2>
                     <p>Your one-time password reset code is:</p>
-                    <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                    <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
                     <p style="color: #666;">This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
                 </div>`
             );
