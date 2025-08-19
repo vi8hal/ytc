@@ -1,20 +1,19 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { PlusCircle, Loader2, KeyRound, Save, AlertCircle, CheckCircle, Youtube, ChevronDown, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2 } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
 import { saveCredentialSetAction, getCredentialSetsAction } from '@/lib/actions/credentials';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '../ui/skeleton';
 
 interface CredentialManagerProps {
@@ -105,9 +104,8 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleConnect = async () => {
-        if (!selectedCredentialSet) return;
-        const { id, googleClientId, googleRedirectUri } = selectedCredentialSet;
+    const handleConnect = async (credentialSet: CredentialSet) => {
+        const { id, googleClientId, googleRedirectUri } = credentialSet;
         const result = await getGoogleAuthUrlAction(id, googleClientId, googleRedirectUri);
         if (result.success && result.url) {
             window.location.href = result.url;
@@ -143,27 +141,11 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="font-headline text-xl">Step 1: Select & Connect Credentials</CardTitle>
-                <CardDescription>Choose a credential set for this campaign, or add a new one. You must connect the account to authorize comment posting.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="flex-1 justify-between">
-                                {selectedCredentialSet ? selectedCredentialSet.credentialName : 'Select a credential set...'}
-                                <ChevronDown />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                            {credentialSets && credentialSets.map(set => (
-                                <DropdownMenuItem key={set.id} onSelect={() => onCredentialSelect(set)}>
-                                    {set.credentialName}
-                                </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle className="font-headline text-xl">Step 1: Select & Connect Credentials</CardTitle>
+                        <CardDescription>Choose a credential set for this campaign, or add a new one.</CardDescription>
+                    </div>
                     <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                         <DialogTrigger asChild>
                             <Button variant="secondary"><PlusCircle className="mr-2"/> Add New</Button>
@@ -177,42 +159,66 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                         </DialogContent>
                     </Dialog>
                 </div>
-
-                {selectedCredentialSet && (
-                     <div className="space-y-4 rounded-lg border p-4">
-                        <h3 className="font-semibold">{selectedCredentialSet.credentialName}</h3>
-                        {selectedCredentialSet.isConnected ? (
-                             <Alert variant="default">
-                                <CheckCircle className="h-4 w-4" />
-                                <AlertTitle>Account Connected</AlertTitle>
-                                <AlertDescription>
-                                    This credential set is authorized to post comments.
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <div className="space-y-3">
-                                <Alert variant="destructive">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>Account Not Connected</AlertTitle>
-                                    <AlertDescription>
-                                        You must connect this account to grant permission for posting comments.
-                                    </AlertDescription>
-                                </Alert>
-                                <Button onClick={handleConnect}>
-                                    <Youtube className="mr-2" />
-                                    Connect YouTube Account
-                                </Button>
-                            </div>
-                        )}
-                     </div>
-                )}
-                 {!selectedCredentialSet && credentialSets && credentialSets.length > 0 && (
-                    <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>Please select a credential set from the dropdown to continue.</AlertDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                 {selectedCredentialSet && (
+                    <Alert variant="default" className="border-primary/50">
+                        <CheckCircle className="h-4 w-4 text-primary" />
+                        <AlertTitle>Credential Set Selected</AlertTitle>
+                        <AlertDescription>
+                            You have selected <span className="font-semibold">"{selectedCredentialSet.credentialName}"</span>. You can now proceed to the next step.
+                        </AlertDescription>
                     </Alert>
                 )}
-                 {!selectedCredentialSet && credentialSets && credentialSets.length === 0 && (
+
+                {credentialSets && credentialSets.length > 0 ? (
+                    <Accordion type="single" collapsible className="w-full" value={selectedCredentialSet?.id.toString()}>
+                        {credentialSets.map(set => (
+                             <AccordionItem value={set.id.toString()} key={set.id}>
+                                <AccordionTrigger>
+                                    <div className="flex items-center gap-3">
+                                        <span>{set.credentialName}</span>
+                                        {set.isConnected ? (
+                                            <div className="flex items-center gap-1 text-xs text-green-500"><CheckCircle className="h-3 w-3" /> Connected</div>
+                                        ) : (
+                                            <div className="flex items-center gap-1 text-xs text-amber-500"><AlertCircle className="h-3 w-3" /> Not Connected</div>
+                                        )}
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <div className="space-y-4 rounded-lg border bg-background/50 p-4">
+                                        {set.isConnected ? (
+                                            <Alert variant="default">
+                                                <CheckCircle className="h-4 w-4" />
+                                                <AlertTitle>Account Connected</AlertTitle>
+                                                <AlertDescription>
+                                                    This credential set is authorized to post comments.
+                                                </AlertDescription>
+                                            </Alert>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <Alert variant="destructive">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    <AlertTitle>Account Not Connected</AlertTitle>
+                                                    <AlertDescription>
+                                                        You must connect this account to grant permission for posting comments.
+                                                    </AlertDescription>
+                                                </Alert>
+                                                <Button onClick={() => handleConnect(set)}>
+                                                    <Youtube className="mr-2" />
+                                                    Connect YouTube Account
+                                                </Button>
+                                            </div>
+                                        )}
+                                        {selectedCredentialSet?.id !== set.id && (
+                                            <Button variant="outline" size="sm" onClick={() => onCredentialSelect(set)}>Select this credential set</Button>
+                                        )}
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                ) : (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>You have no saved credentials. Click "Add New" to get started.</AlertDescription>
@@ -222,3 +228,5 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
         </Card>
     );
 }
+
+    
