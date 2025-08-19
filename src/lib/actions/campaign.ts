@@ -4,6 +4,9 @@
 import { z } from 'zod';
 import { runCampaign } from '@/ai/flows/run-campaign';
 import type { CampaignInput, CampaignOutput } from '@/ai/flows/run-campaign';
+import { getClient } from '../db';
+import { getUserIdFromSession } from '../utils/auth-helpers';
+import { revalidatePath } from 'next/cache';
 
 const CampaignActionSchema = z.object({
   credentialId: z.coerce.number().int().positive({ message: "A valid credential set must be selected." }),
@@ -48,6 +51,7 @@ export async function runCampaignAction(
     
     const result = await runCampaign(input);
     
+    revalidatePath('/dashboard');
     return { data: result, error: null, message: 'Campaign completed successfully!' };
 
   } catch (error) {
@@ -55,4 +59,33 @@ export async function runCampaignAction(
     console.error("Campaign failed:", errorMessage);
     return { data: null, error: "Campaign Error", message: errorMessage };
   }
+}
+
+export async function getCampaignHistory() {
+    const userId = await getUserIdFromSession();
+    if (!userId) {
+        return [];
+    }
+
+    const client = await getClient();
+    try {
+        const result = await client.query(`
+            SELECT 
+                c.id, 
+                c."createdAt", 
+                uc."credentialName",
+                (SELECT COUNT(*) FROM campaign_events ce WHERE ce."campaignId" = c.id) as "eventCount"
+            FROM campaigns c
+            JOIN user_credentials uc ON c."credentialId" = uc.id
+            WHERE c."userId" = $1
+            ORDER BY c."createdAt" DESC
+            LIMIT 5
+        `, [userId]);
+        return result.rows;
+    } catch (error) {
+        console.error('Failed to fetch campaign history:', error);
+        return [];
+    } finally {
+        client.release();
+    }
 }

@@ -1,7 +1,10 @@
 
 import { DashboardClient } from '@/components/dashboard/dashboard-client';
+import { getCampaignHistory } from '@/lib/actions/campaign';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const campaigns = await getCampaignHistory();
+
   return (
     <main className="flex-1 p-4 sm:p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
@@ -11,7 +14,7 @@ export default function DashboardPage() {
                 Configure and launch your comment shuffling campaign.
             </p>
         </div>
-        <DashboardClient />
+        <DashboardClient campaigns={campaigns} />
       </div>
     </main>
   );

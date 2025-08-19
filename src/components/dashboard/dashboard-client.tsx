@@ -7,11 +7,18 @@ import { ResultsTimeline } from './results-timeline';
 import { Separator } from '@/components/ui/separator';
 import { DashboardStepper } from './dashboard-stepper';
 import type { CredentialSet } from '@/lib/actions/credentials';
+import { CampaignHistory } from './campaign-history';
 
 export type Video = { id: string; title: string; channelId: string; channelTitle: string; };
 export type Channel = { id: string; name: string; thumbnail: string; };
+export type Campaign = {
+    id: number;
+    createdAt: string;
+    credentialName: string;
+    eventCount: string;
+}
 
-export function DashboardClient() {
+export function DashboardClient({ campaigns }: { campaigns: Campaign[] }) {
   const [selectedCredentialSet, setSelectedCredentialSet] = useState<CredentialSet | null>(null);
   const [selectedChannels, setSelectedChannels] = useState<Channel[]>([]);
   const [selectedVideos, setSelectedVideos] = useState<Video[]>([]);
@@ -52,6 +59,13 @@ export function DashboardClient() {
         <>
             <Separator className="my-8" />
             <ResultsTimeline results={campaignResults} />
+        </>
+      )}
+
+      {campaigns && campaigns.length > 0 && (
+        <>
+            <Separator className="my-8" />
+            <CampaignHistory campaigns={campaigns} />
         </>
       )}
     </div>

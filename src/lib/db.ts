@@ -21,7 +21,7 @@ export async function initializeDb() {
     try {
         await client.query('BEGIN');
         
-        // Original users table
+        // Users table
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -34,11 +34,11 @@ export async function initializeDb() {
             );
         `);
         
-        // New table for storing multiple credential sets per user
+        // User Credentials table
         await client.query(`
             CREATE TABLE IF NOT EXISTS user_credentials (
                 id SERIAL PRIMARY KEY,
-                "userId" INTEGER NOT NULL,
+                "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 "credentialName" VARCHAR(255) NOT NULL,
                 "youtubeApiKey" VARCHAR(255) NOT NULL,
                 "googleClientId" VARCHAR(255) NOT NULL,
@@ -48,24 +48,35 @@ export async function initializeDb() {
                 "googleRefreshToken" TEXT,
                 "googleTokenExpiry" TIMESTAMP,
                 "isConnected" BOOLEAN DEFAULT FALSE,
-                FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE,
                 UNIQUE("userId", "credentialName")
+            );
+        `);
+
+        // Campaigns table
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS campaigns (
+                id SERIAL PRIMARY KEY,
+                "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                "credentialId" INTEGER NOT NULL REFERENCES user_credentials(id) ON DELETE RESTRICT,
+                comments TEXT[] NOT NULL,
+                "videoIds" TEXT[] NOT NULL,
+                "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        // Campaign Events table (for results)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS campaign_events (
+                id SERIAL PRIMARY KEY,
+                "campaignId" INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+                "videoId" VARCHAR(255) NOT NULL,
+                comment TEXT NOT NULL,
+                "postedAt" TIMESTAMP WITH TIME ZONE NOT NULL
             );
         `);
 
         // Drop the old user_settings table as it's replaced by user_credentials
         await client.query('DROP TABLE IF EXISTS user_settings;');
-        
-        // Remove old column from users table if it exists
-        try {
-            await client.query('ALTER TABLE users DROP COLUMN "youtubeApiKey";');
-        } catch (error: any) {
-            // Ignore error if column doesn't exist (e.g., on a fresh install)
-            if (error.code !== '42703') { 
-                throw error;
-            }
-        }
-
 
         await client.query('COMMIT');
         console.log('Database tables initialized or already exist.');

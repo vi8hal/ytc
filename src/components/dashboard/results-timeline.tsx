@@ -4,13 +4,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CampaignOutput } from '@/ai/flows/run-campaign';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, History } from 'lucide-react';
 
 interface ResultsTimelineProps {
   results: CampaignOutput['results'];
+  isHistory?: boolean;
 }
 
-export function ResultsTimeline({ results }: ResultsTimelineProps) {
+export function ResultsTimeline({ results, isHistory = false }: ResultsTimelineProps) {
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -21,11 +22,13 @@ export function ResultsTimeline({ results }: ResultsTimelineProps) {
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="font-headline text-xl flex items-center gap-2">
-            <CheckCircle2 className="text-green-500" />
-            Campaign Complete: Results
+            {isHistory ? <History className="text-primary" /> : <CheckCircle2 className="text-green-500" />}
+            {isHistory ? 'Past Campaign Results' : 'Campaign Complete: Results'}
         </CardTitle>
         <CardDescription>
-          Here's a visualization of when each comment was sent within the 10-minute window.
+          {isHistory
+            ? 'This is a visualization of a past campaign.'
+            : "Here's a visualization of when each comment was sent within the 10-minute window."}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-8">

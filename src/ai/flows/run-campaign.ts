@@ -24,6 +24,7 @@ const CampaignInputSchema = z.object({
 export type CampaignInput = z.infer<typeof CampaignInputSchema>;
 
 const CampaignOutputSchema = z.object({
+  campaignId: z.number().describe('The ID of the newly created campaign.'),
   results: z.array(z.object({
     videoId: z.string().describe('The YouTube video ID the comment was sent to.'),
     commentSent: z.string().describe('The comment that was sent.'),
@@ -61,7 +62,7 @@ async function getAuthenticatedClient(userId: number, credentialId: number): Pro
         });
         
         // Auto-refresh logic: Check if the token is expired or close to expiring.
-        if (credentials.googleTokenExpiry && new Date() >= new Date(credentials.googleTokenExpiry - 5 * 60 * 1000)) {
+        if (credentials.googleTokenExpiry && new Date() >= new Date(new Date(credentials.googleTokenExpiry).getTime() - 5 * 60 * 1000)) {
             const { credentials: newTokens } = await oauth2Client.refreshAccessToken();
             
             await client.query(
@@ -100,48 +101,79 @@ const runCampaignFlow = ai.defineFlow(
     if (!userId) {
         throw new Error("User not authenticated.");
     }
-
     const {credentialId, comments, videoIds} = input;
-    const results: CampaignOutput['results'] = [];
-    const oauth2Client = await getAuthenticatedClient(userId, credentialId);
-    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    
+    const dbClient = await getClient();
+    let campaignId: number;
 
+    try {
+        await dbClient.query('BEGIN');
+        
+        // 1. Create the campaign record
+        const campaignRes = await dbClient.query(
+            `INSERT INTO campaigns ("userId", "credentialId", comments, "videoIds")
+             VALUES ($1, $2, $3, $4) RETURNING id`,
+            [userId, credentialId, comments, videoIds]
+        );
+        campaignId = campaignRes.rows[0].id;
 
-    for (const videoId of videoIds) {
-      const commentIndex = Math.floor(Math.random() * comments.length);
-      const commentText = comments[commentIndex];
-      // Simulate posting over a 10-minute window. This can be replaced with actual scheduling logic if needed.
-      const timestamp = Math.floor(Math.random() * 600);
+        // 2. Prepare for comment posting
+        const results: CampaignOutput['results'] = [];
+        const oauth2Client = await getAuthenticatedClient(userId, credentialId);
+        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+        const campaignStartTime = Date.now();
 
-      try {
-        await youtube.commentThreads.insert({
-            part: ['snippet'],
-            requestBody: {
-                snippet: {
-                    videoId: videoId,
-                    topLevelComment: {
-                        snippet: {
-                            textOriginal: commentText,
+        // 3. Loop through videos and post comments
+        for (const videoId of videoIds) {
+          const commentIndex = Math.floor(Math.random() * comments.length);
+          const commentText = comments[commentIndex];
+          const timestamp = Math.floor(Math.random() * 600); // Simulate posting over a 10-minute window.
+          const postedAt = new Date(campaignStartTime + timestamp * 1000);
+
+          try {
+            await youtube.commentThreads.insert({
+                part: ['snippet'],
+                requestBody: {
+                    snippet: {
+                        videoId: videoId,
+                        topLevelComment: {
+                            snippet: {
+                                textOriginal: commentText,
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
 
-        results.push({
-            videoId: videoId,
-            commentSent: commentText,
-            timestamp: timestamp,
-        });
+            // 4. Log the successful event
+            await dbClient.query(
+                `INSERT INTO campaign_events ("campaignId", "videoId", comment, "postedAt")
+                 VALUES ($1, $2, $3, $4)`,
+                [campaignId, videoId, commentText, postedAt]
+            );
 
-      } catch (error: any) {
-         console.error(`Failed to post comment to video ${videoId}:`, error.message);
-         // Instead of stopping, we'll throw a descriptive error for the user.
-         // A more robust implementation might collect errors and return them.
-         throw new Error(`Failed to post comment to video ${videoId}. Reason: ${error.errors?.[0]?.message || error.message}. Please check your account permissions and API quota.`);
-      }
+            results.push({
+                videoId: videoId,
+                commentSent: commentText,
+                timestamp: timestamp,
+            });
+
+          } catch (error: any) {
+             console.error(`Failed to post comment to video ${videoId}:`, error.message);
+             // A more robust implementation might collect errors and return them.
+             throw new Error(`Failed to post comment to video ${videoId}. Reason: ${error.errors?.[0]?.message || error.message}. Please check your account permissions and API quota.`);
+          }
+        }
+        
+        await dbClient.query('COMMIT');
+        return { campaignId, results };
+
+    } catch (flowError: any) {
+        await dbClient.query('ROLLBACK');
+        console.error('Error during campaign flow, rolling back transaction.', flowError);
+        throw flowError; // Re-throw the error to be caught by the action
+    } finally {
+        dbClient.release();
     }
-
-    return {results};
   }
 );
