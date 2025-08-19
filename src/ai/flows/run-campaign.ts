@@ -57,19 +57,19 @@ async function getAuthenticatedClient(): Promise<OAuth2Client> {
         oauth2Client.setCredentials({
             access_token: settings.googleAccessToken,
             refresh_token: settings.googleRefreshToken,
-            expiry_date: new Date(settings.googleTokenExpiry).getTime(),
+            expiry_date: settings.googleTokenExpiry ? new Date(settings.googleTokenExpiry).getTime() : null,
         });
         
         // Auto-refresh logic
-        if (new Date() >= new Date(settings.googleTokenExpiry)) {
+        if (settings.googleTokenExpiry && new Date() >= new Date(settings.googleTokenExpiry)) {
             const { credentials } = await oauth2Client.refreshAccessToken();
-             await client.query(
+            await client.query(
                 `UPDATE user_settings 
                  SET "googleAccessToken" = $1, "googleTokenExpiry" = $2
                  WHERE "userId" = $3`,
                 [
                     credentials.access_token,
-                    new Date(credentials.expiry_date!),
+                    credentials.expiry_date ? new Date(credentials.expiry_date) : null,
                     userId
                 ]
             );
