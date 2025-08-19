@@ -3,15 +3,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { CampaignOutput } from '@/ai/flows/run-campaign';
-import { ChannelSearch } from './channel-search';
-import { VideoSelection } from './video-selection';
-import { CommentForm } from './comment-form';
 import { ResultsTimeline } from './results-timeline';
 import { Separator } from '@/components/ui/separator';
 import { getChannelVideos } from '@/lib/actions/youtube';
 import { getAppSettingsAction } from '@/lib/actions/settings';
-import { ApiKeySetup } from './api-key-setup';
 import { useToast } from '@/hooks/use-toast';
+import { DashboardStepper } from './dashboard-stepper';
 
 export type Video = { id: string; title: string; channelId: string; channelTitle: string; };
 export type Channel = { id: string; name: string; thumbnail: string; };
@@ -37,6 +34,7 @@ export function DashboardClient() {
           setIsYouTubeConnected(result.settings.isYouTubeConnected);
       } else if (result.error) {
           console.error("Error fetching app settings:", result.error);
+          toast({ title: 'Error', description: 'Could not fetch your settings. Please refresh.', variant: 'destructive' });
       }
     } catch (error) {
       console.error("Failed to fetch app settings", error);
@@ -95,6 +93,9 @@ export function DashboardClient() {
 
   const handleCampaignComplete = (results: CampaignOutput['results']) => {
     setCampaignResults(results);
+    // Reset selections after campaign
+    setSelectedChannels([]);
+    setSelectedVideos([]);
   };
   
   const handleCredentialsUpdate = () => {
@@ -102,51 +103,28 @@ export function DashboardClient() {
     handleSetChannels([]);
   }
 
-  const handleYouTubeConnectionUpdate = (isConnected: boolean) => {
-    setIsYouTubeConnected(isConnected);
-  }
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-      <div className="lg:col-span-2 space-y-8">
-        <ApiKeySetup 
-            currentApiKey={apiKey} 
+    <div className="space-y-8">
+        <DashboardStepper
+            apiKey={apiKey}
             isYouTubeConnected={isYouTubeConnected}
-            onCredentialsUpdate={handleCredentialsUpdate} 
-            onYouTubeConnectionUpdate={handleYouTubeConnectionUpdate}
-            isLoading={areSettingsLoading} 
-        />
-
-        <ChannelSearch
-            onChannelsChange={handleSetChannels}
+            areSettingsLoading={areSettingsLoading}
+            onCredentialsUpdate={handleCredentialsUpdate}
             selectedChannels={selectedChannels}
-            disabled={!apiKey || areSettingsLoading}
-        />
-        
-        <VideoSelection
-          key={selectedChannels.map(c => c.id).join('-')}
-          videos={videos}
-          channels={selectedChannels}
-          isLoading={isLoadingVideos}
-          selectedVideos={selectedVideos}
-          onSelectedVideosChange={setSelectedVideos}
-          disabled={selectedChannels.length === 0}
-          error={videoError}
-        />
-      </div>
-      <div className="lg:col-span-1 space-y-8 sticky top-24">
-        <CommentForm 
+            onChannelsChange={handleSetChannels}
+            videos={videos}
+            isLoadingVideos={isLoadingVideos}
+            videoError={videoError}
             selectedVideos={selectedVideos}
+            onSelectedVideosChange={setSelectedVideos}
             onCampaignComplete={handleCampaignComplete}
-            disabled={!isYouTubeConnected}
         />
-      </div>
       
       {campaignResults && campaignResults.length > 0 && (
-        <div className="lg:col-span-3">
+        <>
             <Separator className="my-8" />
             <ResultsTimeline results={campaignResults} />
-        </div>
+        </>
       )}
     </div>
   );
