@@ -73,18 +73,12 @@ export async function signUpAction(prevState: any, formData: FormData) {
 
         const hashedPassword = bcrypt.hashSync(password, 10);
         
-        const newUserResult = await client.query(
+        await client.query(
             'INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, $4) RETURNING id',
             [name, email, hashedPassword, false]
         );
-        const newUserId = newUserResult.rows[0].id;
 
         const otp = await generateAndSaveOtp(email);
-        
-        await client.query(
-            'INSERT INTO user_settings ("userId") VALUES ($1)',
-            [newUserId]
-        );
         
         await sendVerificationEmail(
             email, 
@@ -263,3 +257,5 @@ export async function logOutAction() {
     cookies().delete('session_token');
     redirect('/signin');
 }
+
+    
