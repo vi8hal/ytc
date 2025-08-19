@@ -17,6 +17,7 @@ export type UpdateApiKeyActionState = {
 async function validateApiKey(apiKey: string): Promise<{isValid: boolean, message: string}> {
     try {
         const youtube = google.youtube({ version: 'v3', auth: apiKey });
+        // Make a simple, low-quota call to check if the key is valid and has the API enabled.
         await youtube.search.list({
             part: ['id'],
             q: 'test',

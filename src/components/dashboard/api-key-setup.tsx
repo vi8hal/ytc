@@ -4,7 +4,7 @@
 import { useActionState, useEffect, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { KeyRound, Loader2, Save, Terminal, AlertCircle, CheckCircle, Youtube } from 'lucide-react';
-import { updateApiKeyAction, getAppSettingsAction } from '@/lib/actions/settings';
+import { updateApiKeyAction } from '@/lib/actions/settings';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,6 @@ interface ApiKeySetupProps {
     currentApiKey: string | null;
     isYouTubeConnected: boolean;
     onCredentialsUpdate: () => void;
-    onYouTubeConnectionUpdate: (isConnected: boolean) => void;
     isLoading: boolean;
 }
 
@@ -41,7 +40,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
     );
 }
 
-export function ApiKeySetup({ currentApiKey, isYouTubeConnected, onCredentialsUpdate, onYouTubeConnectionUpdate, isLoading }: ApiKeySetupProps) {
+export function ApiKeySetup({ currentApiKey, isYouTubeConnected, onCredentialsUpdate, isLoading }: ApiKeySetupProps) {
     const initialState = { message: null, error: false, apiKey: null };
     const [state, formAction] = useActionState(updateApiKeyAction, initialState);
     const [localApiKey, setLocalApiKey] = useState(currentApiKey ?? '');
@@ -77,12 +76,23 @@ export function ApiKeySetup({ currentApiKey, isYouTubeConnected, onCredentialsUp
         return (
             <Card className="shadow-lg">
                 <CardHeader>
-                    <Skeleton className="h-6 w-1/2" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
                 </CardHeader>
-                <CardContent className='space-y-4'>
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-32" />
+                <CardContent className='space-y-6'>
+                    <div className="space-y-4 rounded-lg border p-4">
+                        <Skeleton className="h-5 w-48" />
+                         <div className="space-y-2">
+                            <Skeleton className="h-4 w-20" />
+                            <Skeleton className="h-10 w-full" />
+                        </div>
+                        <Skeleton className="h-10 w-36" />
+                    </div>
+                     <div className="space-y-4 rounded-lg border p-4">
+                        <Skeleton className="h-5 w-56" />
+                        <Skeleton className="h-4 w-11/12" />
+                        <Skeleton className="h-10 w-48" />
+                    </div>
                 </CardContent>
             </Card>
         )
