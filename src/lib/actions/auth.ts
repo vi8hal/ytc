@@ -110,7 +110,7 @@ export async function signInAction(prevState: any, formData: FormData) {
   const validation = SignInSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validation.success) {
-    return { error: validation.error.flatten().fieldErrors.email?.[0] || validation.error.flatten().fieldErrors.password?.[0] };
+    return { error: 'Invalid email or password.' };
   }
   
   const { email, password } = validation.data;
@@ -142,7 +142,7 @@ export async function signInAction(prevState: any, formData: FormData) {
     }
 
     const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
-    cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+    cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
 
   } catch (error) {
     if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
@@ -191,7 +191,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
         );
 
         const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
-        cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+        cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
 
     } catch (error) {
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
@@ -204,7 +204,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     redirect('/dashboard');
 }
 
-export async function resendOtpAction(email: string) {
+export async function resendOtpAction(email: string): Promise<{error?: string | null, success?: string | null}> {
     try {
         const validation = EmailSchema.safeParse(email);
         if (!validation.success) {
@@ -247,8 +247,12 @@ export async function resendOtpAction(email: string) {
 }
 
 export async function logOutAction() {
-    cookies().delete('session_token');
+    const cookieStore = cookies();
+    const sessionToken = cookieStore.get('session_token');
+
+    if(sessionToken) {
+        cookieStore.delete('session_token');
+    }
+    
     redirect('/signin');
 }
-
-    

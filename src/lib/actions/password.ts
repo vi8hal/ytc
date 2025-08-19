@@ -20,7 +20,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
     const validation = EmailSchema.safeParse(email);
 
     if (!validation.success) {
-      return { error: true, message: validation.error.flatten().formErrors[0] };
+      return { error: true, message: 'Please enter a valid email address.' };
     }
     
     const client = await getClient();
@@ -28,6 +28,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
         const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
         const user = result.rows[0];
 
+        // We only proceed if a user is found, but we don't tell the client whether one was found or not.
         if (user) {
             const otp = await generateAndSaveOtp(email);
             await sendVerificationEmail(
@@ -44,11 +45,11 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
         }
     } catch(e) {
         console.error("Error in forgot password action:", e);
-        // Do not expose internal errors to the client
+        // Do not expose internal errors to the client.
     } finally {
         client.release();
     }
-    // Always return a generic message to prevent user enumeration attacks.
+    // Always return a generic success message to prevent user enumeration attacks.
     return { error: null, message: 'If an account with that email exists, a reset code has been sent.' };
 }
 
@@ -65,25 +66,31 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
     const { email, otp, password } = validation.data;
     const client = await getClient();
     try {
-        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+        await client.query('BEGIN');
+
+        const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const user = result.rows[0];
 
-        if (!user) {
+        if (!user || user.otp !== otp) {
+            await client.query('ROLLBACK');
             return { error: 'Invalid email or OTP.' };
         }
 
-        if (user.otp !== otp || !user.otpExpires || new Date() > new Date(user.otpExpires)) {
+        if (!user.otpExpires || new Date() > new Date(user.otpExpires)) {
+            await client.query('ROLLBACK');
             return { error: 'Invalid or expired OTP. Please request a new one.' };
         }
 
         const hashedPassword = bcrypt.hashSync(password, 10);
         await client.query(
-            'UPDATE users SET password = $1, otp = $2, "otpExpires" = $3, verified = $4 WHERE id = $5',
-            [hashedPassword, null, null, true, user.id]
+            'UPDATE users SET password = $1, otp = NULL, "otpExpires" = NULL, verified = TRUE WHERE id = $2',
+            [hashedPassword, user.id]
         );
         
+        await client.query('COMMIT');
     } catch (error) {
-         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
+        await client.query('ROLLBACK');
+        if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during password reset:', error);
         return { error: 'An unexpected server error occurred.' };
     } finally {
