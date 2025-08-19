@@ -20,8 +20,8 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
   try {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT) || Number(process.env.EMAIL_SERVER_port) || 587,
-        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
+        port: Number(process.env.EMAIL_SERVER_PORT || process.env.EMAIL_SERVER_port) || 587,
+        secure: Number(process.env.EMAIL_SERVER_PORT || process.env.EMAIL_SERVER_port) === 465,
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -32,7 +32,7 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
         from: process.env.EMAIL_FROM,
         to: email,
         subject: subject,
-        html: body.replace('{{otp}}', otp),
+        html: body,
       };
 
     await transporter.sendMail(mailOptions);
@@ -45,6 +45,12 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
 export async function generateAndSaveOtp(email: string) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  await db.query('UPDATE users SET otp = $1, "otpExpires" = $2 WHERE email = $3', [otp, otpExpires, email]);
+  
+  const client = await db.connect();
+  try {
+    await client.query('UPDATE users SET otp = $1, "otpExpires" = $2 WHERE email = $3', [otp, otpExpires, email]);
+  } finally {
+    client.release();
+  }
   return otp;
 }

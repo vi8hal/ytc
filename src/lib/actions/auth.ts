@@ -61,7 +61,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
                     `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
                         <h2>Welcome Back to ChronoComment!</h2>
                         <p>Your new one-time verification code is:</p>
-                        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
                         <p style="color: #666;">This code will expire in 10 minutes.</p>
                     </div>`
                 );
@@ -87,7 +87,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
             `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
                 <h2>Welcome to ChronoComment!</h2>
                 <p>Your one-time verification code is:</p>
-                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
                 <p style="color: #666;">This code will expire in 10 minutes.</p>
             </div>`
         );
@@ -133,7 +133,7 @@ export async function signInAction(prevState: any, formData: FormData) {
           `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
             <h2>Complete Your Sign-In</h2>
             <p>Your one-time verification code is:</p>
-            <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+            <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
             <p style="color: #666;">This code will expire in 10 minutes.</p>
           </div>`
       );
@@ -205,20 +205,15 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 }
 
 export async function resendOtpAction(email: string): Promise<{error?: string | null, success?: string | null}> {
+    const client = await getClient();
     try {
         const validation = EmailSchema.safeParse(email);
         if (!validation.success) {
             return { error: "Invalid email address." };
         }
 
-        const client = await getClient();
-        let user;
-        try {
-            const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
-            user = result.rows[0];
-        } finally {
-            client.release();
-        }
+        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+        const user = result.rows[0];
 
         if (!user) {
             return { error: 'No user found with this email. Please sign up first.' };
@@ -235,7 +230,7 @@ export async function resendOtpAction(email: string): Promise<{error?: string | 
             `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
                 <h2>Here is Your New Code</h2>
                 <p>Your new one-time verification code is:</p>
-                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">{{otp}}</p>
+                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
                 <p style="color: #666;">This code will expire in 10 minutes.</p>
             </div>`
         );
@@ -243,6 +238,8 @@ export async function resendOtpAction(email: string): Promise<{error?: string | 
     } catch(e) {
         console.error("Error in resendOtpAction:", e);
         return { error: 'An unexpected error occurred while resending the code.' };
+    } finally {
+        client.release();
     }
 }
 
