@@ -36,7 +36,7 @@ function AddCredentialForm({ onSave }: { onSave: () => void }) {
     const { toast } = useToast();
 
     useEffect(() => {
-        if(state.message) {
+        if(state?.message) {
             toast({
                 title: state.success ? 'Success' : 'Error',
                 description: state.message,
