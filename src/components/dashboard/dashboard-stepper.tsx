@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CampaignOutput } from '@/ai/flows/run-campaign';
-import { ApiKeySetup } from './api-key-setup';
+import { CredentialManager } from './credential-manager';
 import { ChannelSearch } from './channel-search';
 import { VideoSelection } from './video-selection';
 import { CommentForm } from './comment-form';
@@ -12,12 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Check, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Video, Channel } from './dashboard-client';
+import type { CredentialSet } from '@/lib/actions/credentials';
 
 type StepperProps = {
-    apiKey: string | null;
-    isYouTubeConnected: boolean;
-    areSettingsLoading: boolean;
-    onCredentialsUpdate: () => void;
+    selectedCredentialSet: CredentialSet | null;
+    onCredentialSelect: (credential: CredentialSet | null) => void;
 
     selectedChannels: Channel[];
     onChannelsChange: (channels: Channel[]) => void;
@@ -29,7 +28,7 @@ type StepperProps = {
 };
 
 export function DashboardStepper({
-    apiKey, isYouTubeConnected, areSettingsLoading, onCredentialsUpdate,
+    selectedCredentialSet, onCredentialSelect,
     selectedChannels, onChannelsChange,
     selectedVideos, onSelectedVideosChange,
     onCampaignComplete
@@ -37,11 +36,11 @@ export function DashboardStepper({
     const [currentStep, setCurrentStep] = useState(1);
 
     const steps = useMemo(() => [
-        { id: 1, title: "Setup Credentials", isComplete: !!apiKey && isYouTubeConnected },
+        { id: 1, title: "Select Credentials", isComplete: !!selectedCredentialSet?.isConnected },
         { id: 2, title: "Select Channels", isComplete: selectedChannels.length > 0 },
         { id: 3, title: "Select Videos", isComplete: selectedVideos.length > 0 },
         { id: 4, title: "Launch Campaign", isComplete: false },
-    ], [apiKey, isYouTubeConnected, selectedChannels, selectedVideos]);
+    ], [selectedCredentialSet, selectedChannels, selectedVideos]);
 
     const canGoToNextStep = useMemo(() => {
         switch (currentStep) {
@@ -115,17 +114,14 @@ export function DashboardStepper({
                     transition={{ duration: 0.3 }}
                 >
                     {currentStep === 1 && (
-                         <ApiKeySetup
-                            currentApiKey={apiKey}
-                            isYouTubeConnected={isYouTubeConnected}
-                            onCredentialsUpdate={onCredentialsUpdate}
-                            onYouTubeConnectionUpdate={() => {}}
-                            isLoading={areSettingsLoading}
+                         <CredentialManager
+                            selectedCredentialSet={selectedCredentialSet}
+                            onCredentialSelect={onCredentialSelect}
                         />
                     )}
                     {currentStep === 2 && (
                          <ChannelSearch
-                            apiKey={apiKey}
+                            credentialSet={selectedCredentialSet}
                             selectedChannels={selectedChannels}
                             onChannelsChange={onChannelsChange}
                             disabled={!steps[0].isComplete}
@@ -133,7 +129,7 @@ export function DashboardStepper({
                     )}
                     {currentStep === 3 && (
                         <VideoSelection
-                            apiKey={apiKey}
+                            credentialSet={selectedCredentialSet}
                             channels={selectedChannels}
                             selectedVideos={selectedVideos}
                             onSelectedVideosChange={onSelectedVideosChange}
@@ -142,6 +138,7 @@ export function DashboardStepper({
                     )}
                      {currentStep === 4 && (
                         <CommentForm
+                            credentialSet={selectedCredentialSet}
                             selectedVideos={selectedVideos}
                             onCampaignComplete={onCampaignComplete}
                             disabled={!steps[2].isComplete}

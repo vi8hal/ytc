@@ -12,25 +12,26 @@ import { AlertCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { cn } from '@/lib/utils';
 import { getChannelVideos } from '@/lib/actions/youtube';
+import type { CredentialSet } from '@/lib/actions/credentials';
 
 const MAX_VIDEOS = 10;
 
 interface VideoSelectionProps {
-  apiKey: string | null;
+  credentialSet: CredentialSet | null;
   channels: Channel[];
   selectedVideos: Video[];
   onSelectedVideosChange: (videos: Video[]) => void;
   disabled?: boolean;
 }
 
-export function VideoSelection({ apiKey, channels, selectedVideos, onSelectedVideosChange, disabled = false }: VideoSelectionProps) {
+export function VideoSelection({ credentialSet, channels, selectedVideos, onSelectedVideosChange, disabled = false }: VideoSelectionProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchVideos = async () => {
-      if (channels.length === 0 || !apiKey) {
+      if (channels.length === 0 || !credentialSet?.youtubeApiKey) {
         setVideos([]);
         return;
       }
@@ -39,7 +40,7 @@ export function VideoSelection({ apiKey, channels, selectedVideos, onSelectedVid
       setVideos([]);
       onSelectedVideosChange([]); // Clear previous selections
       try {
-        const videoPromises = channels.map(channel => getChannelVideos(apiKey, channel.id));
+        const videoPromises = channels.map(channel => getChannelVideos(credentialSet.youtubeApiKey, channel.id));
         const allChannelVideos = await Promise.all(videoPromises);
         
         const videosWithChannelInfo = allChannelVideos.flatMap((channelVideos, index) => {
@@ -62,7 +63,7 @@ export function VideoSelection({ apiKey, channels, selectedVideos, onSelectedVid
 
     fetchVideos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channels, apiKey]);
+  }, [channels, credentialSet]);
 
 
   const handleSelectVideo = (video: Video, checked: boolean) => {

@@ -14,8 +14,10 @@ import type { Video } from './dashboard-client';
 import type { CampaignOutput } from '@/ai/flows/run-campaign';
 import { Bot, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import type { CredentialSet } from '@/lib/actions/credentials';
 
 interface CommentFormProps {
+  credentialSet: CredentialSet | null;
   selectedVideos: Video[];
   onCampaignComplete: (results: CampaignOutput['results']) => void;
   disabled?: boolean;
@@ -40,7 +42,7 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function CommentForm({ selectedVideos, onCampaignComplete, disabled = false }: CommentFormProps) {
+export function CommentForm({ credentialSet, selectedVideos, onCampaignComplete, disabled = false }: CommentFormProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const initialState = { data: null, error: null, message: null };
@@ -73,6 +75,7 @@ export function CommentForm({ selectedVideos, onCampaignComplete, disabled = fal
       <CardContent>
         <form ref={formRef} action={formAction} className="space-y-4">
           <input type="hidden" name="videoIds" value={selectedVideos.map(v => v.id).join(',')} />
+          <input type="hidden" name="credentialId" value={credentialSet?.id ?? ''} />
           
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="space-y-2">
@@ -92,7 +95,7 @@ export function CommentForm({ selectedVideos, onCampaignComplete, disabled = fal
           {disabled && (
              <Alert>
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>Please connect your YouTube account in Step 2 to enable this form.</AlertDescription>
+                <AlertDescription>Please select a video in Step 3 to enable this form.</AlertDescription>
             </Alert>
           )}
           {selectedVideos.length === 0 && !disabled && (

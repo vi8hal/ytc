@@ -20,6 +20,8 @@ export async function initializeDb() {
     const client = await getClient();
     try {
         await client.query('BEGIN');
+        
+        // Original users table
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -32,17 +34,28 @@ export async function initializeDb() {
             );
         `);
         
+        // New table for storing multiple credential sets per user
         await client.query(`
-            CREATE TABLE IF NOT EXISTS user_settings (
+            CREATE TABLE IF NOT EXISTS user_credentials (
                 id SERIAL PRIMARY KEY,
-                "userId" INTEGER UNIQUE NOT NULL,
-                "youtubeApiKey" VARCHAR(255),
+                "userId" INTEGER NOT NULL,
+                "credentialName" VARCHAR(255) NOT NULL,
+                "youtubeApiKey" VARCHAR(255) NOT NULL,
+                "googleClientId" VARCHAR(255) NOT NULL,
+                "googleClientSecret" VARCHAR(255) NOT NULL,
+                "googleRedirectUri" VARCHAR(255) NOT NULL,
                 "googleAccessToken" TEXT,
                 "googleRefreshToken" TEXT,
                 "googleTokenExpiry" TIMESTAMP,
-                FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE
+                "isConnected" BOOLEAN DEFAULT FALSE,
+                FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE("userId", "credentialName")
             );
         `);
+
+        // Drop the old user_settings table as it's replaced by user_credentials
+        await client.query('DROP TABLE IF EXISTS user_settings;');
+
         await client.query('COMMIT');
         console.log('Database tables initialized or already exist.');
     } catch (error) {

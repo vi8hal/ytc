@@ -1,12 +1,10 @@
 
 'use server';
 
-import { google } from 'googleapis';
-import { z } from 'zod';
-import { getUserIdFromSession } from "@/lib/utils/auth-helpers";
-import { getClient } from "@/lib/db";
-
-const ApiKeySchema = z.string().min(1, { message: 'API Key cannot be empty.' });
+// This file is being deprecated in favor of the new credentials action system.
+// The logic has been moved to src/lib/actions/credentials.ts to support
+// multiple credential sets per user.
+// This file can be safely removed in the future.
 
 export type UpdateApiKeyActionState = {
     message: string | null;
@@ -14,66 +12,8 @@ export type UpdateApiKeyActionState = {
     apiKey?: string | null;
 }
 
-async function validateApiKey(apiKey: string): Promise<{isValid: boolean, message: string}> {
-    try {
-        const youtube = google.youtube({ version: 'v3', auth: apiKey });
-        // Make a simple, low-quota call to check if the key is valid and has the API enabled.
-        await youtube.search.list({
-            part: ['id'],
-            q: 'test',
-            maxResults: 1,
-        });
-        return { isValid: true, message: 'Your API Key is valid and has been saved.' };
-    } catch (error: any) {
-        if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
-            return { isValid: false, message: 'The provided API Key does not have the YouTube Data API v3 service enabled.' };
-        }
-         if (error.code === 400 || (error.errors && (error.errors[0]?.reason === 'keyInvalid' || error.errors[0]?.reason === 'badRequest'))) {
-            return { isValid: false, message: 'The provided API Key is malformed or invalid.' };
-        }
-        console.error("API Key Validation Error:", error);
-        return { isValid: false, message: 'Could not validate the API Key due to an unexpected error.' };
-    }
-}
-
 export async function updateApiKeyAction(prevState: any, formData: FormData): Promise<UpdateApiKeyActionState> {
-    const userId = await getUserIdFromSession();
-    if (!userId) {
-        return { error: true, message: 'Authentication failed. Please sign in again.' };
-    }
-
-    const apiKey = formData.get('apiKey') as string;
-    const validation = ApiKeySchema.safeParse(apiKey);
-
-    if (!validation.success) {
-        const errorMessage = validation.error.flatten().formErrors[0]
-        return { error: true, message: errorMessage };
-    }
-    
-    const { isValid, message } = await validateApiKey(apiKey);
-    if (!isValid) {
-        return { error: true, message: message };
-    }
-    
-    const client = await getClient();
-    try {
-        await client.query(
-            `INSERT INTO user_settings ("userId", "youtubeApiKey") 
-             VALUES ($1, $2)
-             ON CONFLICT ("userId") 
-             DO UPDATE SET "youtubeApiKey" = EXCLUDED."youtubeApiKey"`,
-            [userId, apiKey]
-        );
-        
-        return { error: false, message: message, apiKey: apiKey };
-
-    } catch(e) {
-        console.error("Error saving API Key:", e);
-        const errorMessage = 'An unexpected server error occurred while saving the key.';
-        return { error: true, message: errorMessage };
-    } finally {
-        client.release();
-    }
+    return { error: true, message: 'This action is deprecated.' };
 }
 
 type AppSettings = {
@@ -82,27 +22,5 @@ type AppSettings = {
 };
 
 export async function getAppSettingsAction(): Promise<{ settings: AppSettings | null, error: string | null }> {
-    const userId = await getUserIdFromSession();
-    if (!userId) {
-        return { settings: null, error: 'User not authenticated' };
-    }
-
-    const client = await getClient();
-    try {
-        const result = await client.query('SELECT "youtubeApiKey", "googleAccessToken", "googleRefreshToken" FROM user_settings WHERE "userId" = $1', [userId]);
-        const userSettings = result.rows[0];
-
-        const settings: AppSettings = {
-             apiKey: userSettings?.youtubeApiKey || null,
-             isYouTubeConnected: !!(userSettings?.googleAccessToken && userSettings?.googleRefreshToken)
-        }
-        
-        return { settings: settings, error: null };
-
-    } catch (error) {
-        console.error("Error in getAppSettingsAction:", error);
-        return { settings: null, error: 'Failed to retrieve app settings from the database.' };
-    } finally {
-        client.release();
-    }
+    return { settings: null, error: 'This action is deprecated.' };
 }

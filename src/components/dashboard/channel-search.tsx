@@ -14,15 +14,16 @@ import type { Channel } from './dashboard-client';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import Image from 'next/image';
+import { CredentialSet } from '@/lib/actions/credentials';
 
 interface ChannelSearchProps {
-  apiKey: string | null;
+  credentialSet: CredentialSet | null;
   selectedChannels: Channel[];
   onChannelsChange: (channels: Channel[]) => void;
   disabled?: boolean;
 }
 
-export function ChannelSearch({ apiKey, selectedChannels, onChannelsChange, disabled = false }: ChannelSearchProps) {
+export function ChannelSearch({ credentialSet, selectedChannels, onChannelsChange, disabled = false }: ChannelSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,9 +55,9 @@ export function ChannelSearch({ apiKey, selectedChannels, onChannelsChange, disa
   );
 
   useEffect(() => {
-    debouncedSearch(searchQuery, apiKey);
+    debouncedSearch(searchQuery, credentialSet?.youtubeApiKey ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, apiKey]);
+  }, [searchQuery, credentialSet]);
   
   const handleAddChannel = (channel: Channel) => {
       if (!selectedChannels.some(c => c.id === channel.id)) {
@@ -117,7 +118,7 @@ export function ChannelSearch({ apiKey, selectedChannels, onChannelsChange, disa
             {disabled && (
                  <Alert>
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>Please provide a valid YouTube API key and connect your account in Step 1 to enable channel search.</AlertDescription>
+                    <AlertDescription>Please select and connect a credential set in Step 1 to enable channel search.</AlertDescription>
                 </Alert>
             )}
             
