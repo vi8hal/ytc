@@ -206,13 +206,13 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                         )}
                      </div>
                 )}
-                 {!selectedCredentialSet && credentialSets.length > 0 && (
+                 {!selectedCredentialSet && credentialSets && credentialSets.length > 0 && (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>Please select a credential set from the dropdown to continue.</AlertDescription>
                     </Alert>
                 )}
-                 {!selectedCredentialSet && credentialSets.length === 0 && (
+                 {!selectedCredentialSet && credentialSets && credentialSets.length === 0 && (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>You have no saved credentials. Click "Add New" to get started.</AlertDescription>
