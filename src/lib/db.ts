@@ -55,6 +55,17 @@ export async function initializeDb() {
 
         // Drop the old user_settings table as it's replaced by user_credentials
         await client.query('DROP TABLE IF EXISTS user_settings;');
+        
+        // Remove old column from users table if it exists
+        try {
+            await client.query('ALTER TABLE users DROP COLUMN "youtubeApiKey";');
+        } catch (error: any) {
+            // Ignore error if column doesn't exist (e.g., on a fresh install)
+            if (error.code !== '42703') { 
+                throw error;
+            }
+        }
+
 
         await client.query('COMMIT');
         console.log('Database tables initialized or already exist.');
