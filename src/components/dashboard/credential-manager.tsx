@@ -156,7 +156,7 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-                            {credentialSets.map(set => (
+                            {credentialSets && credentialSets.map(set => (
                                 <DropdownMenuItem key={set.id} onSelect={() => onCredentialSelect(set)}>
                                     {set.credentialName}
                                 </DropdownMenuItem>
@@ -222,4 +222,3 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
         </Card>
     );
 }
-
