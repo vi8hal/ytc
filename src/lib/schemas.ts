@@ -12,3 +12,12 @@ export const PasswordSchema = z.string()
   });
 
 export const OTPSchema = z.string().length(6, { message: 'OTP must be 6 digits.' });
+
+export const CredentialSetSchema = z.object({
+  id: z.coerce.number().int().optional(),
+  credentialName: z.string().min(1, { message: 'Credential set name is required.' }),
+  youtubeApiKey: z.string().min(1, { message: 'YouTube API Key is required.' }),
+  googleClientId: z.string().min(1, { message: 'Google Client ID is required.' }),
+  googleClientSecret: z.string().min(1, { message: 'Google Client Secret is required.' }).optional(),
+  googleRedirectUri: z.string().min(1, { message: 'Google Redirect URI is required.' }),
+});
