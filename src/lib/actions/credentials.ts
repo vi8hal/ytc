@@ -29,19 +29,15 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     const validation = CredentialSetSchema.safeParse(rawData);
 
     if (!validation.success) {
-        const errorMessage = validation.error.flatten().fieldErrors[0] || 'Invalid data provided.';
-        return { success: false, message: errorMessage };
+        const error = validation.error.flatten().fieldErrors;
+        const message = error.credentialName?.[0] ?? error.youtubeApiKey?.[0] ?? error.googleClientId?.[0] ?? error.googleClientSecret?.[0] ?? error.googleRedirectUri?.[0] ?? 'Invalid data provided.';
+        return { success: false, message: message };
     }
     
     const { credentialName, youtubeApiKey, googleClientId, googleClientSecret, googleRedirectUri } = validation.data;
     const client = await getClient();
 
     try {
-        // First, validate the API key
-        const youtube = google.youtube({ version: 'v3', auth: youtubeApiKey });
-        await youtube.search.list({ part: ['id'], q: 'test', maxResults: 1 });
-
-        // If valid, insert or update the credentials
         await client.query(
             `INSERT INTO user_credentials ("userId", "credentialName", "youtubeApiKey", "googleClientId", "googleClientSecret", "googleRedirectUri")
              VALUES ($1, $2, $3, $4, $5, $6)
@@ -57,17 +53,27 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
                 "isConnected" = FALSE`,
             [userId, credentialName, youtubeApiKey, googleClientId, googleClientSecret, googleRedirectUri]
         );
-        return { success: true, message: 'Credential set saved successfully.' };
+        
+        // After saving, attempt to validate the API key
+        try {
+            const youtube = google.youtube({ version: 'v3', auth: youtubeApiKey });
+            await youtube.search.list({ part: ['id'], q: 'test', maxResults: 1 });
+            return { success: true, message: 'Credential set saved successfully.' };
+        } catch (validationError: any) {
+             let warningMessage = 'Credential set saved, but the YouTube API Key may be invalid or lack permissions.';
+             if (validationError.code === 400 || (validationError.errors && (validationError.errors[0]?.reason === 'keyInvalid' || validationError.errors[0]?.reason === 'badRequest'))) {
+                warningMessage = 'Credentials saved, but the YouTube API Key appears to be invalid.';
+            } else if (validationError.code === 403 || (validationError.errors && validationError.errors[0]?.reason === 'forbidden')) {
+                warningMessage = 'Credentials saved, but the YouTube Data API v3 service may not be enabled for this API Key.';
+            }
+            // Return success because the data was saved, but include a warning message
+            return { success: true, message: warningMessage };
+        }
+
     } catch (error: any) {
         let errorMessage = 'An unexpected error occurred while saving credentials.';
-        if (error.code === 400 || (error.errors && (error.errors[0]?.reason === 'keyInvalid' || error.errors[0]?.reason === 'badRequest'))) {
-            errorMessage = 'The provided YouTube API Key is malformed or invalid.';
-        }
-        if (error.code === 403 || (error.errors && error.errors[0]?.reason === 'forbidden')) {
-            errorMessage = 'The provided YouTube API Key does not have the YouTube Data API v3 service enabled.';
-        }
         if (error.code === '23505') { // Unique constraint violation
-            errorMessage = 'A credential set with this name already exists.';
+            errorMessage = 'A credential set with this name already exists for your account.';
         }
         console.error("Error saving credential set:", error);
         return { success: false, message: errorMessage };
