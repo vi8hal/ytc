@@ -56,17 +56,6 @@ export default function SignUpPage() {
               </Alert>
           )}
 
-          <Button variant="outline" className="w-full">
-            <GoogleIcon className="mr-2 size-5" />
-            Sign Up with Google
-          </Button>
-            
-          <div className="flex items-center gap-4">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-1" />
-          </div>
-
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>

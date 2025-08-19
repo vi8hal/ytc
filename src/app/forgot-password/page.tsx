@@ -62,17 +62,6 @@ export default function ForgotPasswordPage() {
           <CardDescription>No worries. Enter your email and we'll send you a 6-digit reset code.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <Button variant="outline" className="w-full">
-                <GoogleIcon className="mr-2 size-5" />
-                Continue with Google
-            </Button>
-
-            <div className="flex items-center gap-4">
-                <Separator className="flex-1" />
-                <span className="text-xs text-muted-foreground">OR</span>
-                <Separator className="flex-1" />
-            </div>
-            
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email Address</Label>
