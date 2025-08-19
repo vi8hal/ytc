@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import type { CampaignOutput } from '@/ai/flows/run-campaign';
 import { ResultsTimeline } from './results-timeline';
 import { Separator } from '@/components/ui/separator';
-import { getChannelVideos } from '@/lib/actions/youtube';
 import { getAppSettingsAction } from '@/lib/actions/settings';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardStepper } from './dashboard-stepper';
@@ -19,9 +18,6 @@ export function DashboardClient() {
   const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
   const [areSettingsLoading, setAreSettingsLoading] = useState(true);
   const [selectedChannels, setSelectedChannels] = useState<Channel[]>([]);
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
-  const [videoError, setVideoError] = useState<string | null>(null);
   const [selectedVideos, setSelectedVideos] = useState<Video[]>([]);
   const [campaignResults, setCampaignResults] = useState<CampaignOutput['results'] | null>(null);
 
@@ -48,47 +44,10 @@ export function DashboardClient() {
     fetchAppSettings();
   }, [fetchAppSettings]);
 
-  useEffect(() => {
-    const fetchVideos = async () => {
-      if (selectedChannels.length === 0 || !apiKey) {
-        setVideos([]);
-        return;
-      }
-      setIsLoadingVideos(true);
-      setVideoError(null);
-      setVideos([]);
-      setSelectedVideos([]);
-      try {
-        const videoPromises = selectedChannels.map(channel => getChannelVideos(channel.id));
-        const allChannelVideos = await Promise.all(videoPromises);
-        
-        const videosWithChannelInfo = allChannelVideos.flatMap((channelVideos, index) => {
-            const channel = selectedChannels[index];
-            return channelVideos.map(video => ({
-                ...video,
-                channelId: channel.id,
-                channelTitle: channel.name,
-            }))
-        });
-
-        setVideos(videosWithChannelInfo);
-      } catch (error: any) {
-        setVideoError(error.message || 'An unknown error occurred.');
-        setVideos([]);
-      } finally {
-        setIsLoadingVideos(false);
-      }
-    };
-
-    fetchVideos();
-  }, [selectedChannels, apiKey]);
-
   const handleSetChannels = (channels: Channel[]) => {
     setSelectedChannels(channels);
-    setVideos([]);
     setSelectedVideos([]);
     setCampaignResults(null);
-    setVideoError(null);
   };
 
   const handleCampaignComplete = (results: CampaignOutput['results']) => {
@@ -112,9 +71,6 @@ export function DashboardClient() {
             onCredentialsUpdate={handleCredentialsUpdate}
             selectedChannels={selectedChannels}
             onChannelsChange={handleSetChannels}
-            videos={videos}
-            isLoadingVideos={isLoadingVideos}
-            videoError={videoError}
             selectedVideos={selectedVideos}
             onSelectedVideosChange={setSelectedVideos}
             onCampaignComplete={handleCampaignComplete}

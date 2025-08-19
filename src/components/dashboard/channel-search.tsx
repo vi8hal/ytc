@@ -16,20 +16,21 @@ import { Badge } from '../ui/badge';
 import Image from 'next/image';
 
 interface ChannelSearchProps {
+  apiKey: string | null;
   selectedChannels: Channel[];
   onChannelsChange: (channels: Channel[]) => void;
   disabled?: boolean;
 }
 
-export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = false }: ChannelSearchProps) {
+export function ChannelSearch({ apiKey, selectedChannels, onChannelsChange, disabled = false }: ChannelSearchProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const debouncedSearch = useCallback(
-    debounce(async (query: string) => {
-      if (query.length < 3) {
+    debounce(async (query: string, key: string | null) => {
+      if (!key || query.length < 3) {
         setSearchResults([]);
         setIsLoading(false);
         setError(null);
@@ -38,7 +39,7 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
       setIsLoading(true);
       setError(null);
       try {
-        const results = await searchChannels(query);
+        const results = await searchChannels(key, query);
         setSearchResults(results.filter(
           result => !selectedChannels.some(selected => selected.id === result.id)
         ));
@@ -53,9 +54,9 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
   );
 
   useEffect(() => {
-    debouncedSearch(searchQuery);
+    debouncedSearch(searchQuery, apiKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, apiKey]);
   
   const handleAddChannel = (channel: Channel) => {
       if (!selectedChannels.some(c => c.id === channel.id)) {
@@ -72,7 +73,7 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle className="font-headline text-xl">Step 3: Select Channels</CardTitle>
+        <CardTitle className="font-headline text-xl">Step 2: Select Channels</CardTitle>
         <CardDescription>Search for and select the YouTube channels you want to target.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -116,7 +117,7 @@ export function ChannelSearch({ selectedChannels, onChannelsChange, disabled = f
             {disabled && (
                  <Alert>
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>Please provide a valid YouTube API key in Step 1 to enable channel search.</AlertDescription>
+                    <AlertDescription>Please provide a valid YouTube API key and connect your account in Step 1 to enable channel search.</AlertDescription>
                 </Alert>
             )}
             

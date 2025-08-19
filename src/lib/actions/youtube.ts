@@ -2,26 +2,10 @@
 'use server';
 
 import { google } from 'googleapis';
-import { getApiKeyAction } from './settings';
 
-async function getApiKeyForCurrentUser(): Promise<string> {
-    try {
-        const { apiKey, error } = await getApiKeyAction();
-        if (error || !apiKey) {
-            throw new Error(error || 'YouTube API Key not configured. Please add it in settings.');
-        }
-        return apiKey;
-    } catch(e) {
-        console.error("Failed to get API key for current user:", e);
-        throw e;
-    }
-}
-
-
-export async function searchChannels(query: string) {
-  if (!query) return [];
+export async function searchChannels(apiKey: string, query: string) {
+  if (!query || !apiKey) return [];
   try {
-    const apiKey = await getApiKeyForCurrentUser();
     const youtube = google.youtube({ version: 'v3', auth: apiKey });
 
     const response = await youtube.search.list({
@@ -50,10 +34,9 @@ export async function searchChannels(query: string) {
   }
 }
 
-export async function getChannelVideos(channelId: string) {
-  if (!channelId) return [];
+export async function getChannelVideos(apiKey: string, channelId: string) {
+  if (!channelId || !apiKey) return [];
   try {
-    const apiKey = await getApiKeyForCurrentUser();
     const youtube = google.youtube({ version: 'v3', auth: apiKey });
 
     const response = await youtube.search.list({

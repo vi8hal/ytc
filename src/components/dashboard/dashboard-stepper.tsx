@@ -22,9 +22,6 @@ type StepperProps = {
     selectedChannels: Channel[];
     onChannelsChange: (channels: Channel[]) => void;
     
-    videos: Video[];
-    isLoadingVideos: boolean;
-    videoError: string | null;
     selectedVideos: Video[];
     onSelectedVideosChange: (videos: Video[]) => void;
     
@@ -34,7 +31,7 @@ type StepperProps = {
 export function DashboardStepper({
     apiKey, isYouTubeConnected, areSettingsLoading, onCredentialsUpdate,
     selectedChannels, onChannelsChange,
-    videos, isLoadingVideos, videoError, selectedVideos, onSelectedVideosChange,
+    selectedVideos, onSelectedVideosChange,
     onCampaignComplete
 }: StepperProps) {
     const [currentStep, setCurrentStep] = useState(1);
@@ -128,6 +125,7 @@ export function DashboardStepper({
                     )}
                     {currentStep === 2 && (
                          <ChannelSearch
+                            apiKey={apiKey}
                             selectedChannels={selectedChannels}
                             onChannelsChange={onChannelsChange}
                             disabled={!steps[0].isComplete}
@@ -135,14 +133,11 @@ export function DashboardStepper({
                     )}
                     {currentStep === 3 && (
                         <VideoSelection
-                            key={selectedChannels.map(c => c.id).join('-')}
-                            videos={videos}
+                            apiKey={apiKey}
                             channels={selectedChannels}
-                            isLoading={isLoadingVideos}
                             selectedVideos={selectedVideos}
                             onSelectedVideosChange={onSelectedVideosChange}
                             disabled={!steps[1].isComplete}
-                            error={videoError}
                         />
                     )}
                      {currentStep === 4 && (
@@ -169,4 +164,3 @@ export function DashboardStepper({
         </div>
     );
 }
-

@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -10,20 +11,60 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { cn } from '@/lib/utils';
+import { getChannelVideos } from '@/lib/actions/youtube';
 
 const MAX_VIDEOS = 10;
 
 interface VideoSelectionProps {
-  videos: Video[];
+  apiKey: string | null;
   channels: Channel[];
-  isLoading: boolean;
   selectedVideos: Video[];
   onSelectedVideosChange: (videos: Video[]) => void;
   disabled?: boolean;
-  error?: string | null;
 }
 
-export function VideoSelection({ videos, channels, isLoading, selectedVideos, onSelectedVideosChange, disabled = false, error = null }: VideoSelectionProps) {
+export function VideoSelection({ apiKey, channels, selectedVideos, onSelectedVideosChange, disabled = false }: VideoSelectionProps) {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchVideos = async () => {
+      if (channels.length === 0 || !apiKey) {
+        setVideos([]);
+        return;
+      }
+      setIsLoading(true);
+      setError(null);
+      setVideos([]);
+      onSelectedVideosChange([]); // Clear previous selections
+      try {
+        const videoPromises = channels.map(channel => getChannelVideos(apiKey, channel.id));
+        const allChannelVideos = await Promise.all(videoPromises);
+        
+        const videosWithChannelInfo = allChannelVideos.flatMap((channelVideos, index) => {
+            const channel = channels[index];
+            return channelVideos.map(video => ({
+                ...video,
+                channelId: channel.id,
+                channelTitle: channel.name,
+            }))
+        });
+
+        setVideos(videosWithChannelInfo);
+      } catch (error: any) {
+        setError(error.message || 'An unknown error occurred.');
+        setVideos([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVideos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channels, apiKey]);
+
+
   const handleSelectVideo = (video: Video, checked: boolean) => {
     if (checked) {
       if (selectedVideos.length < MAX_VIDEOS) {
