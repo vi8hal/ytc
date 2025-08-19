@@ -81,12 +81,13 @@ type AppSettings = {
 };
 
 export async function getAppSettingsAction(): Promise<{ settings: AppSettings | null, error: string | null }> {
+    const userId = await getUserIdFromSession();
+    if (!userId) {
+        return { settings: null, error: 'User not authenticated' };
+    }
+
     const client = await getClient();
     try {
-        const userId = await getUserIdFromSession();
-        if (!userId) {
-            return { settings: null, error: 'User not authenticated' };
-        }
         const result = await client.query('SELECT "youtubeApiKey", "googleAccessToken", "googleRefreshToken" FROM user_settings WHERE "userId" = $1', [userId]);
         const userSettings = result.rows[0];
 
