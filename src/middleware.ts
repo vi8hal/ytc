@@ -39,15 +39,14 @@ export async function middleware(request: NextRequest) {
         try {
             const payload = await verifySessionToken(sessionToken);
             if (payload) {
-                // If user has a valid session, redirect them from auth pages to the dashboard.
-                // Exception: allow them to visit /verify-otp if they are somehow still on it.
-                if (pathname === '/verify-otp') {
-                    return NextResponse.next();
-                }
                 return NextResponse.redirect(new URL('/dashboard', request.url));
             }
         } catch (e) {
             // Invalid session token is fine, let them proceed to the auth page.
+            // But clear the invalid cookie.
+             const response = NextResponse.next();
+             response.cookies.delete('session_token');
+             return response;
         }
     }
   }

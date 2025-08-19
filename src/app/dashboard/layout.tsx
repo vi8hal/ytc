@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { LogOut, PanelLeft } from "lucide-react"
 import { logOutAction } from "@/lib/actions/auth";
+import { Suspense } from "react";
 
 export default function DashboardLayout({
   children,
@@ -59,7 +60,9 @@ export default function DashboardLayout({
             </div>
             {/* Header can be customized per page */}
           </header>
-          {children}
+          <Suspense>
+            {children}
+          </Suspense>
         </SidebarInset>
       </div>
     </SidebarProvider>

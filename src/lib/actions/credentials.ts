@@ -11,14 +11,20 @@ const CredentialSetSchema = z.object({
   credentialName: z.string().min(1, { message: 'Credential set name is required.' }),
   youtubeApiKey: z.string().min(1, { message: 'YouTube API Key is required.' }),
   googleClientId: z.string().min(1, { message: 'Google Client ID is required.' }),
-  googleClientSecret: z.string().min(1, { message: 'Google Client Secret is required.' }).optional(), // Optional for updates where it's not changed
+  googleClientSecret: z.string().min(1, { message: 'Google Client Secret is required.' }).optional(),
   googleRedirectUri: z.string().min(1, { message: 'Google Redirect URI is required.' }),
 });
 
-export type CredentialSet = z.infer<typeof CredentialSetSchema> & {
+export type CredentialSet = {
     id: number;
+    credentialName: string;
+    youtubeApiKey: string;
+    googleClientId: string;
+    googleClientSecret: string;
+    googleRedirectUri: string;
     isConnected: boolean;
 };
+
 
 export async function saveCredentialSetAction(prevState: any, formData: FormData) {
     const userId = await getUserIdFromSession();
@@ -31,8 +37,8 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     
     // Make secret optional only if it's an update and not provided
     const finalSchema = CredentialSetSchema.extend({
-        googleClientSecret: z.string().min(1, { message: 'Google Client Secret is required.' }).optional()
-    }).refine(data => id ? true : !!data.googleClientSecret, {
+        googleClientSecret: z.string().optional() // Allow it to be empty for updates
+    }).refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
         message: 'Google Client Secret is required for new credentials.',
         path: ['googleClientSecret']
     });
@@ -51,26 +57,28 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     try {
         if (id) {
             // Update existing credential set
-            // Check if user owns this credential set
-            const ownerCheck = await client.query('SELECT id FROM user_credentials WHERE id = $1 AND "userId" = $2', [id, userId]);
+            const ownerCheck = await client.query('SELECT "googleClientSecret" FROM user_credentials WHERE id = $1 AND "userId" = $2', [id, userId]);
             if(ownerCheck.rowCount === 0) {
                  return { success: false, message: 'Permission denied.' };
             }
             
-            // Build the update query dynamically
-            const updates = { credentialName, youtubeApiKey, googleClientId, googleRedirectUri };
-            const params = [credentialName, youtubeApiKey, googleClientId, googleRedirectUri];
-            let query = `UPDATE user_credentials SET "credentialName" = $1, "youtubeApiKey" = $2, "googleClientId" = $3, "googleRedirectUri" = $4`;
-            
-            if (googleClientSecret && googleClientSecret !== '********') {
-                query += `, "googleClientSecret" = $${params.length + 1}`;
-                params.push(googleClientSecret);
-            }
-            
-            query += `, "googleAccessToken" = NULL, "googleRefreshToken" = NULL, "googleTokenExpiry" = NULL, "isConnected" = FALSE WHERE id = $${params.length + 1}`;
-            params.push(id);
+            // Use existing secret if a new one isn't provided
+            const finalSecret = (googleClientSecret && googleClientSecret.length > 0) ? googleClientSecret : ownerCheck.rows[0].googleClientSecret;
 
-            await client.query(query, params);
+            await client.query(
+                `UPDATE user_credentials SET 
+                    "credentialName" = $1, 
+                    "youtubeApiKey" = $2, 
+                    "googleClientId" = $3, 
+                    "googleClientSecret" = $4,
+                    "googleRedirectUri" = $5,
+                    "googleAccessToken" = NULL, 
+                    "googleRefreshToken" = NULL, 
+                    "googleTokenExpiry" = NULL, 
+                    "isConnected" = FALSE 
+                 WHERE id = $6`,
+                [credentialName, youtubeApiKey, googleClientId, finalSecret, googleRedirectUri, id]
+            );
 
         } else {
             // Insert new credential set

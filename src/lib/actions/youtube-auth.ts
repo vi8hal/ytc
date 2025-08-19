@@ -2,7 +2,6 @@
 'use server';
 
 import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
 import { getUserIdFromSession } from '../utils/auth-helpers';
 import { getClient } from '../db';
 import { redirect } from 'next/navigation';
@@ -48,7 +47,10 @@ export async function getGoogleAuthUrlAction(credentialId: number, clientId: str
 
 export async function setGoogleCredentialsAction(code: string, state: string) {
     const client = await getClient();
+    let redirectUrl = '/dashboard';
     try {
+        await client.query('BEGIN');
+        
         const userId = await getUserIdFromSession();
         if (!userId) {
             throw new Error("User not authenticated.");
@@ -57,7 +59,6 @@ export async function setGoogleCredentialsAction(code: string, state: string) {
         const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('ascii'));
         const credentialId = z.coerce.number().int().positive().parse(decodedState.credentialId);
         
-        // Retrieve the specific credentials the user is authorizing
         const credResult = await client.query(
             'SELECT "googleClientId", "googleClientSecret", "googleRedirectUri" FROM user_credentials WHERE id = $1 AND "userId" = $2',
             [credentialId, userId]
@@ -77,7 +78,7 @@ export async function setGoogleCredentialsAction(code: string, state: string) {
         const { tokens } = await oauth2Client.getToken(code);
         
         if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date) {
-            throw new Error('Failed to retrieve the necessary authentication tokens from Google.');
+            throw new Error('Failed to retrieve the necessary authentication tokens from Google. Please try connecting again.');
         }
 
         await client.query(
@@ -93,11 +94,17 @@ export async function setGoogleCredentialsAction(code: string, state: string) {
             ]
         );
 
+        await client.query('COMMIT');
+        redirectUrl = '/dashboard?connect=success';
+
     } catch (error: any) {
+        await client.query('ROLLBACK');
         console.error('Error setting Google credentials:', error.message);
-        // Maybe redirect to an error page or show a toast on the dashboard
+        const errorMessage = encodeURIComponent(error.message || 'An unknown error occurred during authentication.');
+        redirectUrl = `/dashboard?connect=error&message=${errorMessage}`;
     } finally {
         client.release();
     }
-    redirect('/dashboard');
+    
+    redirect(redirectUrl);
 }

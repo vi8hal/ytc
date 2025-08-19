@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
 import { saveCredentialSetAction, getCredentialSetsAction, deleteCredentialSetAction } from '@/lib/actions/credentials';
@@ -34,7 +35,7 @@ function SaveButton() {
 function DeleteButton() {
     const { pending } = useFormStatus();
      return (
-        <AlertDialogAction disabled={pending}>
+        <AlertDialogAction disabled={pending} type="submit">
             {pending ? <><Loader2 className="mr-2 animate-spin" /> Deleting...</> : <>Delete</>}
         </AlertDialogAction>
     )
@@ -74,7 +75,7 @@ function AddCredentialForm({ onSave, credentialSet }: { onSave: () => void, cred
             </div>
             <div className="space-y-2">
                 <Label htmlFor="googleClientSecret">Google Client Secret</Label>
-                <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder="GOCSPX-..." defaultValue={credentialSet?.googleClientSecret ? '********' : ''} required />
+                <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} required={!credentialSet?.id} />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
@@ -93,6 +94,25 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
     const [isAddFormOpen, setIsAddFormOpen] = useState(false);
     const [editingSet, setEditingSet] = useState<CredentialSet | null>(null);
     const { toast } = useToast();
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const connectStatus = searchParams.get('connect');
+        const message = searchParams.get('message');
+        if (connectStatus === 'error' && message) {
+            toast({
+                title: 'Connection Failed',
+                description: decodeURIComponent(message),
+                variant: 'destructive',
+            });
+        }
+        if (connectStatus === 'success') {
+             toast({
+                title: 'Connection Successful',
+                description: 'Your YouTube account has been connected successfully.',
+            });
+        }
+    }, [searchParams, toast]);
 
     const fetchCredentials = useCallback(async () => {
         setIsLoading(true);
@@ -117,6 +137,14 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
 
     const handleConnect = async (credentialSet: CredentialSet) => {
         const { id, googleClientId, googleRedirectUri } = credentialSet;
+        if (!googleClientId || !googleRedirectUri) {
+             toast({
+                title: 'Connection Error',
+                description: 'Client ID and Redirect URI must be configured for this credential set.',
+                variant: 'destructive',
+            });
+            return;
+        }
         const result = await getGoogleAuthUrlAction(id, googleClientId, googleRedirectUri);
         if (result.success && result.url) {
             window.location.href = result.url;
@@ -178,6 +206,7 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                             setIsAddFormOpen(false);
                             setEditingSet(null);
                         } else {
+                            setEditingSet(null); // Reset editing state
                             setIsAddFormOpen(true);
                         }
                     }}>
@@ -206,7 +235,10 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                 )}
 
                 {credentialSets && credentialSets.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full" value={selectedCredentialSet?.id.toString()}>
+                    <Accordion type="single" collapsible className="w-full" value={selectedCredentialSet?.id.toString()} onValueChange={(value) => {
+                        const newSet = credentialSets.find(s => s.id.toString() === value) || null;
+                        onCredentialSelect(newSet);
+                    }}>
                         {credentialSets.map(set => (
                              <AccordionItem value={set.id.toString()} key={set.id}>
                                 <AccordionTrigger>
@@ -237,7 +269,7 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <form action={() => handleDelete(set.id)}>
+                                                    <form onSubmit={(e) => { e.preventDefault(); handleDelete(set.id); }}>
                                                         <DeleteButton />
                                                     </form>
                                                 </AlertDialogFooter>
@@ -270,18 +302,23 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                                 </Button>
                                             </div>
                                         )}
-                                        {selectedCredentialSet?.id !== set.id && (
-                                            <Button variant="outline" size="sm" onClick={() => onCredentialSelect(set)}>Select this credential set</Button>
-                                        )}
+                                        {/* The select button is no longer needed as selection is handled by opening the accordion */}
                                     </div>
                                 </AccordionContent>
                             </AccordionItem>
                         ))}
                     </Accordion>
                 ) : (
+                     <Alert className="text-center">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>No Credentials Found</AlertTitle>
+                        <AlertDescription>You have no saved credentials. Click "Add New" to get started.</AlertDescription>
+                    </Alert>
+                )}
+                 {!selectedCredentialSet && credentialSets && credentialSets.length > 0 && (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>You have no saved credentials. Click "Add New" to get started.</AlertDescription>
+                        <AlertDescription>Please expand and select a credential set from the list above to continue.</AlertDescription>
                     </Alert>
                 )}
             </CardContent>
