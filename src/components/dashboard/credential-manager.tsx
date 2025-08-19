@@ -26,7 +26,7 @@ interface CredentialManagerProps {
 function SaveButton() {
     const { pending } = useFormStatus();
     return (
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} form="credentialSetForm">
             {pending ? <><Loader2 className="mr-2 animate-spin" /> Saving...</> : <><Save className="mr-2" /> Save Credentials</>}
         </Button>
     )
@@ -41,25 +41,24 @@ function DeleteButton() {
     )
 }
 
-function AddCredentialForm({ onSave, credentialSet }: { onSave: () => void, credentialSet?: CredentialSet | null }) {
+function CredentialSetForm({ onSave, credentialSet }: { onSave: () => void, credentialSet?: CredentialSet | null }) {
     const [state, formAction] = useActionState(saveCredentialSetAction, { success: false, message: null });
-    const { toast } = useToast();
-
+    
     useEffect(() => {
-        if(state?.message) {
-            toast({
-                title: state.success ? 'Success' : 'Error',
-                description: state.message,
-                variant: state.success ? 'default' : 'destructive',
-            });
-            if (state.success) {
-                onSave();
-            }
+        if(state?.success) {
+            onSave();
         }
-    }, [state, toast, onSave]);
+    }, [state, onSave]);
 
     return (
-        <form action={formAction} className="space-y-4">
+        <form action={formAction} id="credentialSetForm" className="space-y-4">
+             {state?.message && !state.success && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Save Failed</AlertTitle>
+                    <AlertDescription>{state.message}</AlertDescription>
+                </Alert>
+            )}
             <input type="hidden" name="id" value={credentialSet?.id ?? ''} />
             <div className="space-y-2">
                 <Label htmlFor="credentialName">Credential Set Name</Label>
@@ -81,9 +80,6 @@ function AddCredentialForm({ onSave, credentialSet }: { onSave: () => void, cred
                 <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
                 <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
             </div>
-            <DialogFooter>
-                <SaveButton />
-            </DialogFooter>
         </form>
     );
 }
@@ -91,7 +87,7 @@ function AddCredentialForm({ onSave, credentialSet }: { onSave: () => void, cred
 export function CredentialManager({ selectedCredentialSet, onCredentialSelect }: CredentialManagerProps) {
     const [credentialSets, setCredentialSets] = useState<CredentialSet[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+    const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSet, setEditingSet] = useState<CredentialSet | null>(null);
     const { toast } = useToast();
     const searchParams = useSearchParams();
@@ -158,8 +154,12 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
     }
     
     const handleFormSave = () => {
-        setIsAddFormOpen(false);
+        setIsFormOpen(false);
         setEditingSet(null);
+        toast({
+            title: 'Success',
+            description: 'Credential set saved successfully.',
+        });
         fetchCredentials();
     }
 
@@ -196,18 +196,15 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start sm:items-center">
                     <div>
                         <CardTitle className="font-headline text-xl">Step 1: Select & Connect Credentials</CardTitle>
                         <CardDescription>Choose a credential set for this campaign, or add a new one.</CardDescription>
                     </div>
-                     <Dialog open={isAddFormOpen || !!editingSet} onOpenChange={(open) => {
+                     <Dialog open={isFormOpen} onOpenChange={(open) => {
+                        setIsFormOpen(open);
                         if (!open) {
-                            setIsAddFormOpen(false);
-                            setEditingSet(null);
-                        } else {
-                            setEditingSet(null); // Reset editing state
-                            setIsAddFormOpen(true);
+                            setEditingSet(null); // Reset editing state when dialog closes
                         }
                     }}>
                         <DialogTrigger asChild>
@@ -218,7 +215,11 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                 <DialogTitle>{editingSet ? 'Edit' : 'Add New'} Credential Set</DialogTitle>
                                 <DialogDescription>Provide the necessary API and OAuth credentials. This information will be stored securely.</DialogDescription>
                             </DialogHeader>
-                            <AddCredentialForm onSave={handleFormSave} credentialSet={editingSet} />
+                            <CredentialSetForm onSave={handleFormSave} credentialSet={editingSet} />
+                             <DialogFooter>
+                                <Button variant="ghost" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+                                <SaveButton />
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 </div>
@@ -251,7 +252,7 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                         )}
                                     </div>
                                      <div className="flex items-center gap-2 mr-2">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSet(set); }}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSet(set); setIsFormOpen(true); }}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
                                          <AlertDialog>
@@ -302,7 +303,6 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                                 </Button>
                                             </div>
                                         )}
-                                        {/* The select button is no longer needed as selection is handled by opening the accordion */}
                                     </div>
                                 </AccordionContent>
                             </AccordionItem>

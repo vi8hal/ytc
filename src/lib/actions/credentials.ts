@@ -47,10 +47,23 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     const client = await getClient();
 
     try {
+        await client.query('BEGIN');
+        
+        // Check for duplicate names before inserting/updating
+        const duplicateCheck = await client.query(
+            'SELECT id FROM user_credentials WHERE "userId" = $1 AND "credentialName" = $2 AND id != $3',
+            [userId, credentialName, id ?? null]
+        );
+        if (duplicateCheck.rowCount > 0) {
+            await client.query('ROLLBACK');
+            return { success: false, message: 'A credential set with this name already exists for your account.' };
+        }
+
         if (id) {
             // Update existing credential set
             const ownerCheck = await client.query('SELECT "googleClientSecret" FROM user_credentials WHERE id = $1 AND "userId" = $2', [id, userId]);
             if(ownerCheck.rowCount === 0) {
+                 await client.query('ROLLBACK');
                  return { success: false, message: 'Permission denied.' };
             }
             
@@ -81,24 +94,13 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
             );
         }
         
-        // After saving, attempt to validate the API key
-        try {
-            const youtube = google.youtube({ version: 'v3', auth: youtubeApiKey });
-            await youtube.search.list({ part: ['id'], q: 'test', maxResults: 1 });
-            return { success: true, message: 'Credential set saved successfully.' };
-        } catch (validationError: any) {
-             let warningMessage = 'Credential set saved, but the YouTube API Key may be invalid or lack permissions.';
-             if (validationError.code === 400 || (validationError.errors && (validationError.errors[0]?.reason === 'keyInvalid' || validationError.errors[0]?.reason === 'badRequest'))) {
-                warningMessage = 'Credentials saved, but the YouTube API Key appears to be invalid.';
-            } else if (validationError.code === 403 || (validationError.errors && validationError.errors[0]?.reason === 'forbidden')) {
-                warningMessage = 'Credentials saved, but the YouTube Data API v3 service may not be enabled for this API Key.';
-            }
-            return { success: true, message: warningMessage };
-        }
+        await client.query('COMMIT');
+        return { success: true, message: 'Credential set saved successfully.' };
 
     } catch (error: any) {
+        await client.query('ROLLBACK');
         let errorMessage = 'An unexpected error occurred while saving credentials.';
-        if (error.code === '23505') { // Unique constraint violation
+        if (error.code === '23505') { // Unique constraint violation, fallback
             errorMessage = 'A credential set with this name already exists for your account.';
         }
         console.error("Error saving credential set:", error);
