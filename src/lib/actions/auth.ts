@@ -177,13 +177,6 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             return { error: 'No account found for this email address. Please sign up.' };
         }
         
-        if (user.verified) {
-            const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
-            cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-            await client.query('UPDATE users SET otp = NULL, "otpExpires" = NULL WHERE id = $1', [user.id]);
-            redirect('/dashboard');
-        }
-        
         if (user.otp !== otp) {
           return { error: 'The entered code is incorrect.' };
         }
