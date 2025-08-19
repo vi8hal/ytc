@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useCallback, useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2 } from 'lucide-react';
+import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
-import { saveCredentialSetAction, getCredentialSetsAction } from '@/lib/actions/credentials';
+import { saveCredentialSetAction, getCredentialSetsAction, deleteCredentialSetAction } from '@/lib/actions/credentials';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -30,7 +31,16 @@ function SaveButton() {
     )
 }
 
-function AddCredentialForm({ onSave }: { onSave: () => void }) {
+function DeleteButton() {
+    const { pending } = useFormStatus();
+     return (
+        <AlertDialogAction disabled={pending}>
+            {pending ? <><Loader2 className="mr-2 animate-spin" /> Deleting...</> : <>Delete</>}
+        </AlertDialogAction>
+    )
+}
+
+function AddCredentialForm({ onSave, credentialSet }: { onSave: () => void, credentialSet?: CredentialSet | null }) {
     const [state, formAction] = useActionState(saveCredentialSetAction, { success: false, message: null });
     const { toast } = useToast();
 
@@ -49,25 +59,26 @@ function AddCredentialForm({ onSave }: { onSave: () => void }) {
 
     return (
         <form action={formAction} className="space-y-4">
+            <input type="hidden" name="id" value={credentialSet?.id ?? ''} />
             <div className="space-y-2">
                 <Label htmlFor="credentialName">Credential Set Name</Label>
-                <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" required />
+                <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" defaultValue={credentialSet?.credentialName ?? ''} required />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="youtubeApiKey">YouTube Data API Key</Label>
-                <Input id="youtubeApiKey" name="youtubeApiKey" placeholder="AIzaSy..." required />
+                <Input id="youtubeApiKey" name="youtubeApiKey" placeholder="AIzaSy..." defaultValue={credentialSet?.youtubeApiKey ?? ''} required />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="googleClientId">Google Client ID</Label>
-                <Input id="googleClientId" name="googleClientId" placeholder="....apps.googleusercontent.com" required />
+                <Input id="googleClientId" name="googleClientId" placeholder="....apps.googleusercontent.com" defaultValue={credentialSet?.googleClientId ?? ''} required />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="googleClientSecret">Google Client Secret</Label>
-                <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder="GOCSPX-..." required />
+                <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder="GOCSPX-..." defaultValue={credentialSet?.googleClientSecret ? '********' : ''} required />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
-                <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" required />
+                <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
             </div>
             <DialogFooter>
                 <SaveButton />
@@ -79,7 +90,8 @@ function AddCredentialForm({ onSave }: { onSave: () => void }) {
 export function CredentialManager({ selectedCredentialSet, onCredentialSelect }: CredentialManagerProps) {
     const [credentialSets, setCredentialSets] = useState<CredentialSet[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+    const [editingSet, setEditingSet] = useState<CredentialSet | null>(null);
     const { toast } = useToast();
 
     const fetchCredentials = useCallback(async () => {
@@ -87,7 +99,6 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
         try {
             const sets = await getCredentialSetsAction();
             setCredentialSets(sets);
-            // If there's a selected set, find its updated version
             if (selectedCredentialSet) {
                 const updatedSelected = sets.find(s => s.id === selectedCredentialSet.id) || null;
                 onCredentialSelect(updatedSelected);
@@ -119,8 +130,24 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
     }
     
     const handleFormSave = () => {
-        setIsFormOpen(false);
+        setIsAddFormOpen(false);
+        setEditingSet(null);
         fetchCredentials();
+    }
+
+    const handleDelete = async (id: number) => {
+        const result = await deleteCredentialSetAction(id);
+        toast({
+            title: result.success ? 'Success' : 'Error',
+            description: result.message,
+            variant: result.success ? 'default' : 'destructive',
+        });
+        if (result.success) {
+            fetchCredentials();
+            if (selectedCredentialSet?.id === id) {
+                onCredentialSelect(null);
+            }
+        }
     }
     
     if (isLoading) {
@@ -146,16 +173,23 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                         <CardTitle className="font-headline text-xl">Step 1: Select & Connect Credentials</CardTitle>
                         <CardDescription>Choose a credential set for this campaign, or add a new one.</CardDescription>
                     </div>
-                    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                     <Dialog open={isAddFormOpen || !!editingSet} onOpenChange={(open) => {
+                        if (!open) {
+                            setIsAddFormOpen(false);
+                            setEditingSet(null);
+                        } else {
+                            setIsAddFormOpen(true);
+                        }
+                    }}>
                         <DialogTrigger asChild>
                             <Button variant="secondary"><PlusCircle className="mr-2"/> Add New</Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>Add New Credential Set</DialogTitle>
+                                <DialogTitle>{editingSet ? 'Edit' : 'Add New'} Credential Set</DialogTitle>
                                 <DialogDescription>Provide the necessary API and OAuth credentials. This information will be stored securely.</DialogDescription>
                             </DialogHeader>
-                            <AddCredentialForm onSave={handleFormSave} />
+                            <AddCredentialForm onSave={handleFormSave} credentialSet={editingSet} />
                         </DialogContent>
                     </Dialog>
                 </div>
@@ -176,13 +210,39 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                         {credentialSets.map(set => (
                              <AccordionItem value={set.id.toString()} key={set.id}>
                                 <AccordionTrigger>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 flex-1">
                                         <span>{set.credentialName}</span>
                                         {set.isConnected ? (
                                             <div className="flex items-center gap-1 text-xs text-green-500"><CheckCircle className="h-3 w-3" /> Connected</div>
                                         ) : (
                                             <div className="flex items-center gap-1 text-xs text-amber-500"><AlertCircle className="h-3 w-3" /> Not Connected</div>
                                         )}
+                                    </div>
+                                     <div className="flex items-center gap-2 mr-2">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSet(set); }}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                         <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will permanently delete the "{set.credentialName}" credential set. This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <form action={() => handleDelete(set.id)}>
+                                                        <DeleteButton />
+                                                    </form>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
@@ -228,5 +288,3 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
         </Card>
     );
 }
-
-    
