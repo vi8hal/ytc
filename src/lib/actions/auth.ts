@@ -10,6 +10,7 @@ import { getClient } from '@/lib/db';
 import { createSessionToken } from '@/lib/auth';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, NameSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
+import { type VercelPoolClient } from '@vercel/postgres';
 
 const SignInSchema = z.object({
   email: EmailSchema,
@@ -44,7 +45,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     try {
         await client.query('BEGIN');
         
-        const existingUserResult = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+        const existingUserResult = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const existingUser = existingUserResult.rows[0];
 
         if (existingUser) {
@@ -53,7 +54,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
                 return { error: 'An account with this email already exists.' };
             } else {
                 // User exists but is not verified, treat as a re-verification attempt.
-                const otp = await generateAndSaveOtp(email);
+                const otp = await generateAndSaveOtp(client, email);
                 await sendVerificationEmail(
                     email, 
                     otp,
@@ -78,7 +79,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
             [name, email, hashedPassword, false]
         );
 
-        const otp = await generateAndSaveOtp(email);
+        const otp = await generateAndSaveOtp(client, email);
         
         await sendVerificationEmail(
             email, 
@@ -125,8 +126,9 @@ export async function signInAction(prevState: any, formData: FormData) {
     }
 
     if (!user.verified) {
-      const otp = await generateAndSaveOtp(email);
-      await sendVerificationEmail(
+       await client.query('BEGIN');
+       const otp = await generateAndSaveOtp(client, email);
+       await sendVerificationEmail(
           email, 
           otp, 
           'Your ChronoComment Verification Code',
@@ -137,7 +139,7 @@ export async function signInAction(prevState: any, formData: FormData) {
             <p style="color: #666;">This code will expire in 10 minutes.</p>
           </div>`
       );
-
+      await client.query('COMMIT');
       redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
     }
 
@@ -145,7 +147,10 @@ export async function signInAction(prevState: any, formData: FormData) {
     cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
 
   } catch (error) {
-    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
+    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')){
+        await client.query('ROLLBACK');
+        throw error;
+    };
     console.error('An unexpected error occurred during sign-in:', error);
     return { error: 'An unexpected server error occurred. Please try again.' };
   } finally {
@@ -170,18 +175,23 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     const client = await getClient();
 
     try {
-        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+        await client.query('BEGIN');
+
+        const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const user = result.rows[0];
 
         if (!user) {
+            await client.query('ROLLBACK');
             return { error: 'No account found for this email address. Please sign up.' };
         }
         
         if (user.otp !== otp) {
+          await client.query('ROLLBACK');
           return { error: 'The entered code is incorrect.' };
         }
 
         if (!user.otpExpires || new Date() > new Date(user.otpExpires)) {
+          await client.query('ROLLBACK');
           return { error: 'This OTP has expired. Please request a new one by trying to sign up or sign in again.' };
         }
         
@@ -192,8 +202,11 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 
         const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
         cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+        
+        await client.query('COMMIT');
 
     } catch (error) {
+        await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
         console.error('An unexpected error occurred during OTP verification:', error);
         return { error: 'An unexpected server error occurred.' };
@@ -207,22 +220,26 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 export async function resendOtpAction(email: string): Promise<{error?: string | null, success?: string | null}> {
     const client = await getClient();
     try {
+        await client.query('BEGIN');
         const validation = EmailSchema.safeParse(email);
         if (!validation.success) {
+            await client.query('ROLLBACK');
             return { error: "Invalid email address." };
         }
 
-        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+        const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const user = result.rows[0];
 
         if (!user) {
+             await client.query('ROLLBACK');
             return { error: 'No user found with this email. Please sign up first.' };
         }
         if (user.verified) {
+             await client.query('ROLLBACK');
             return { success: 'This account is already verified. You can sign in.' };
         }
 
-        const otp = await generateAndSaveOtp(email);
+        const otp = await generateAndSaveOtp(client, email);
         await sendVerificationEmail(
             email,
             otp,
@@ -234,8 +251,10 @@ export async function resendOtpAction(email: string): Promise<{error?: string | 
                 <p style="color: #666;">This code will expire in 10 minutes.</p>
             </div>`
         );
+        await client.query('COMMIT');
         return { success: 'A new verification code has been sent to your email.' };
     } catch(e) {
+        await client.query('ROLLBACK');
         console.error("Error in resendOtpAction:", e);
         return { error: 'An unexpected error occurred while resending the code.' };
     } finally {

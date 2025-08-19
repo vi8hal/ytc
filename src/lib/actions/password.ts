@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { getClient } from '@/lib/db';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
+import { type VercelPoolClient } from '@vercel/postgres';
 
 const ResetPasswordSchema = z.object({
     email: EmailSchema,
@@ -25,12 +26,13 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
     
     const client = await getClient();
     try {
-        const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+        await client.query('BEGIN');
+        const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const user = result.rows[0];
 
         // We only proceed if a user is found, but we don't tell the client whether one was found or not.
         if (user) {
-            const otp = await generateAndSaveOtp(email);
+            const otp = await generateAndSaveOtp(client, email);
             await sendVerificationEmail(
                 email, 
                 otp,
@@ -43,7 +45,9 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
                 </div>`
             );
         }
+        await client.query('COMMIT');
     } catch(e) {
+        await client.query('ROLLBACK');
         console.error("Error in forgot password action:", e);
         // Do not expose internal errors to the client.
     } finally {

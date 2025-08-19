@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { verifySessionToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import nodemailer from 'nodemailer';
+import type { VercelPoolClient } from '@vercel/postgres';
 
 export async function getUserIdFromSession() {
     const sessionToken = cookies().get('session_token')?.value;
@@ -20,8 +21,8 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
   try {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT || process.env.EMAIL_SERVER_port) || 587,
-        secure: Number(process.env.EMAIL_SERVER_PORT || process.env.EMAIL_SERVER_port) === 465,
+        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
+        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD,
@@ -42,15 +43,11 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
   }
 }
 
-export async function generateAndSaveOtp(email: string) {
+export async function generateAndSaveOtp(client: VercelPoolClient, email: string) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
   
-  const client = await db.connect();
-  try {
-    await client.query('UPDATE users SET otp = $1, "otpExpires" = $2 WHERE email = $3', [otp, otpExpires, email]);
-  } finally {
-    client.release();
-  }
+  await client.query('UPDATE users SET otp = $1, "otpExpires" = $2 WHERE email = $3', [otp, otpExpires, email]);
+  
   return otp;
 }
