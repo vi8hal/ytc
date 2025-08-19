@@ -19,5 +19,5 @@ export const CredentialSetSchema = z.object({
   youtubeApiKey: z.string().min(1, { message: 'YouTube API Key is required.' }),
   googleClientId: z.string().min(1, { message: 'Google Client ID is required.' }),
   googleClientSecret: z.string().min(1, { message: 'Google Client Secret is required.' }).optional(),
-  googleRedirectUri: z.string().min(1, { message: 'Google Redirect URI is required.' }),
+  googleRedirectUri: z.string().url({ message: 'A valid Redirect URI is required.' }),
 });

@@ -4,7 +4,6 @@
 import { z } from 'zod';
 import { getUserIdFromSession } from "@/lib/utils/auth-helpers";
 import { getClient } from "@/lib/db";
-import { google } from 'googleapis';
 import { CredentialSetSchema } from '@/lib/schemas';
 
 export type CredentialSet = {
@@ -28,9 +27,7 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     const id = rawData.id ? Number(rawData.id) : undefined;
     
     // Make secret optional only if it's an update and not provided
-    const finalSchema = CredentialSetSchema.extend({
-        googleClientSecret: z.string().optional() // Allow it to be empty for updates
-    }).refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
+    const finalSchema = CredentialSetSchema.refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
         message: 'Google Client Secret is required for new credentials.',
         path: ['googleClientSecret']
     });
@@ -51,9 +48,10 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
         
         // Check for duplicate names before inserting/updating
         const duplicateCheck = await client.query(
-            'SELECT id FROM user_credentials WHERE "userId" = $1 AND "credentialName" = $2 AND id != $3',
-            [userId, credentialName, id ?? null]
+            'SELECT id FROM user_credentials WHERE "userId" = $1 AND "credentialName" = $2 AND id != COALESCE($3, 0)',
+            [userId, credentialName, id]
         );
+
         if (duplicateCheck.rowCount > 0) {
             await client.query('ROLLBACK');
             return { success: false, message: 'A credential set with this name already exists for your account.' };
@@ -137,12 +135,23 @@ export async function deleteCredentialSetAction(id: number) {
 
     const client = await getClient();
     try {
+        await client.query('BEGIN');
+        // We need to delete campaign events and campaigns that use this credential first due to foreign key constraints.
+        await client.query('DELETE FROM campaign_events WHERE "campaignId" IN (SELECT id FROM campaigns WHERE "credentialId" = $1)', [id]);
+        await client.query('DELETE FROM campaigns WHERE "credentialId" = $1', [id]);
+
         const result = await client.query('DELETE FROM user_credentials WHERE id = $1 AND "userId" = $2', [id, userId]);
+        
         if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
             return { success: false, message: 'Credential set not found or permission denied.' };
         }
+        
+        await client.query('COMMIT');
         return { success: true, message: 'Credential set deleted successfully.' };
+
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error("Error deleting credential set:", error);
         return { success: false, message: 'An unexpected error occurred.' };
     } finally {

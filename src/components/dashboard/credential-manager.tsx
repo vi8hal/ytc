@@ -265,7 +265,7 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        This will permanently delete the "{set.credentialName}" credential set. This action cannot be undone.
+                                                        This will permanently delete the "{set.credentialName}" credential set and all associated campaign data. This action cannot be undone.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
@@ -281,13 +281,19 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                 <AccordionContent>
                                     <div className="space-y-4 rounded-lg border bg-background/50 p-4">
                                         {set.isConnected ? (
-                                            <Alert variant="default">
-                                                <CheckCircle className="h-4 w-4" />
-                                                <AlertTitle>Account Connected</AlertTitle>
-                                                <AlertDescription>
-                                                    This credential set is authorized to post comments.
-                                                </AlertDescription>
-                                            </Alert>
+                                             <div className="space-y-3">
+                                                <Alert variant="default">
+                                                    <CheckCircle className="h-4 w-4" />
+                                                    <AlertTitle>Account Connected</AlertTitle>
+                                                    <AlertDescription>
+                                                        This credential set is authorized to post comments. If you change credentials, you must reconnect.
+                                                    </AlertDescription>
+                                                </Alert>
+                                                 <Button onClick={() => handleConnect(set)}>
+                                                    <Youtube className="mr-2" />
+                                                    Reconnect Account
+                                                </Button>
+                                            </div>
                                         ) : (
                                             <div className="space-y-3">
                                                 <Alert variant="destructive">
