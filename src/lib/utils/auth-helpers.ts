@@ -20,8 +20,8 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
   try {
       const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_port) || 587,
-        secure: Number(process.env.EMAIL_SERVER_port) === 465,
+        port: Number(process.env.EMAIL_SERVER_PORT) || Number(process.env.EMAIL_SERVER_port) || 587,
+        secure: Number(process.env.EMAIL_SERVER_PORT) === 465,
         auth: {
           user: process.env.EMAIL_SERVER_USER,
           pass: process.env.EMAIL_SERVER_PASSWORD,
