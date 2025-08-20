@@ -98,12 +98,10 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
     const fetchCredentials = useCallback(async () => {
         setIsLoading(true);
         try {
-            // The get action is simple, so we can call it directly,
-            // but in a more complex app, this might be a dedicated client-side fetch.
             const { getCredentialSetsAction } = await import('@/lib/actions/credentials');
             const sets = await getCredentialSetsAction();
             setCredentialSets(sets);
-            onCredentialsUpdate(sets); // Notify parent of the update
+            onCredentialsUpdate(sets);
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to refresh credential sets.', variant: 'destructive'});
         } finally {
@@ -121,30 +119,22 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                 description: decodeURIComponent(message),
                 variant: 'destructive',
             });
-            fetchCredentials(); // Re-fetch to get latest connection status
+            fetchCredentials();
         }
         if (connectStatus === 'success') {
              toast({
                 title: 'Connection Successful',
                 description: 'Your YouTube account has been connected successfully.',
             });
-            fetchCredentials(); // Re-fetch to get latest connection status
+            fetchCredentials();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, toast]);
 
     
     const handleConnect = async (credentialSet: CredentialSet) => {
-        const { id, googleClientId, googleRedirectUri } = credentialSet;
-        if (!googleClientId || !googleRedirectUri) {
-             toast({
-                title: 'Connection Error',
-                description: 'Client ID and Redirect URI must be configured for this credential set.',
-                variant: 'destructive',
-            });
-            return;
-        }
-        const result = await getGoogleAuthUrlAction(id, googleClientId, googleRedirectUri);
+        const { id } = credentialSet;
+        const result = await getGoogleAuthUrlAction(id);
         if (result.success && result.url) {
             window.location.href = result.url;
         } else {
@@ -207,7 +197,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                      <Dialog open={isFormOpen} onOpenChange={(open) => {
                         setIsFormOpen(open);
                         if (!open) {
-                            setEditingSet(null); // Reset editing state when dialog closes
+                            setEditingSet(null);
                         }
                     }}>
                         <DialogTrigger asChild>

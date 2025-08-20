@@ -8,13 +8,18 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state');
 
     if (code && state) {
+        // The server action will handle the entire logic, including redirects.
         await setGoogleCredentialsAction(code, state);
-        // The action handles the redirect, so we don't need to do anything else here.
-        // In case the redirect in the action fails, this response will be sent.
+        
+        // This response is a fallback in case the redirect within the action doesn't execute as expected.
         return new Response('Authentication successful! You can close this tab.', { status: 200 });
     } else {
         const error = searchParams.get('error');
         const errorMessage = `Authentication failed: ${error || 'No authorization code or state provided.'}`;
-        return new Response(errorMessage, { status: 400 });
+        // Redirect back to dashboard with an error message.
+        const dashboardUrl = new URL('/dashboard', request.url)
+        dashboardUrl.searchParams.set('connect', 'error')
+        dashboardUrl.searchParams.set('message', errorMessage)
+        return Response.redirect(dashboardUrl);
     }
 }
