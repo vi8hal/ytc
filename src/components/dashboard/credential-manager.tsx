@@ -97,7 +97,10 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientSecret">Google Client Secret</Label>
-                    <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
+                    <div className="flex gap-2">
+                        <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
+                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
+                    </div>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
@@ -355,5 +358,7 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
+
+    
 
     
