@@ -74,9 +74,12 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
             )}
             <input type="hidden" name="id" value={credentialSet?.id ?? ''} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="credentialName">Credential Set Name</Label>
-                    <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" defaultValue={credentialSet?.credentialName ?? ''} required />
+                    <div className="flex gap-2">
+                      <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" defaultValue={credentialSet?.credentialName ?? ''} required />
+                      <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add</Button>
+                    </div>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="youtubeApiKey">YouTube Data API Key</Label>
@@ -90,7 +93,7 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                     <Label htmlFor="googleClientSecret">Google Client Secret</Label>
                     <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
                 </div>
-                 <div className="space-y-2 md:col-span-2">
+                 <div className="space-y-2">
                     <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
                     <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
                 </div>
@@ -135,7 +138,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                 description: decodeURIComponent(message),
                 variant: 'destructive',
             });
-            fetchCredentials();
+            // No need to call fetchCredentials() here, let selection handle it
         }
         if (connectStatus === 'success') {
              toast({
@@ -346,3 +349,5 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
+
+    
