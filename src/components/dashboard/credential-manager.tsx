@@ -46,22 +46,23 @@ function DeleteButton() {
 
 function CredentialSetForm({ onSave, credentialSet }: { onSave: () => void, credentialSet?: CredentialSet | null }) {
     const [state, formAction] = useActionState(saveCredentialSetAction, { success: false, message: null });
+    const { toast } = useToast();
     
     useEffect(() => {
+        if(state?.message && !state.success) {
+            toast({
+                title: 'Save Failed',
+                description: state.message,
+                variant: 'destructive',
+            });
+        }
         if(state?.success) {
             onSave();
         }
-    }, [state, onSave]);
+    }, [state, onSave, toast]);
 
     return (
         <form action={formAction} id="credentialSetForm" className="space-y-4">
-             {state?.message && !state.success && (
-                <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Save Failed</AlertTitle>
-                    <AlertDescription>{state.message}</AlertDescription>
-                </Alert>
-            )}
             <input type="hidden" name="id" value={credentialSet?.id ?? ''} />
             <div className="space-y-2">
                 <Label htmlFor="credentialName">Credential Set Name</Label>
@@ -77,7 +78,7 @@ function CredentialSetForm({ onSave, credentialSet }: { onSave: () => void, cred
             </div>
             <div className="space-y-2">
                 <Label htmlFor="googleClientSecret">Google Client Secret</Label>
-                <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} required={!credentialSet?.id} />
+                <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
             </div>
              <div className="space-y-2">
                 <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
@@ -278,7 +279,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                                             <Info className="h-4 w-4" />
                                             <AlertTitle>What's the difference?</AlertTitle>
                                             <AlertDescription>
-                                                Your **API Key** allows our app to search for public channels and videos. Connecting your **Google Account** (via OAuth) is what grants us permission to post comments *on your behalf*. Both are required.
+                                                Your **API Key** allows our app to search for public channels and videos (read-only access). Connecting your **Google Account** (via OAuth) grants us permission to post comments *on your behalf* (write access). Both are required.
                                             </AlertDescription>
                                         </Alert>
                                         {set.isConnected ? (
