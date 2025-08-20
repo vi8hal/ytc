@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
+import { Badge } from '../ui/badge';
 
 interface CredentialManagerProps {
     initialCredentialSets: CredentialSet[];
