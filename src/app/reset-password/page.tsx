@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
-import { ArrowRight, Hash, KeyRound, Loader2, Mail } from 'lucide-react';
+import { ArrowRight, Hash, KeyRound, Loader2, Mail, Eye, EyeOff } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,9 @@ function SubmitButton() {
 
 export default function ResetPasswordPage() {
   const [state, formAction] = useActionState(resetPasswordAction, { error: null });
+  const [showPassword, setShowPassword] = useState(false);
+
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -72,7 +75,17 @@ export default function ResetPasswordPage() {
               <Label htmlFor="password">New Password</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="password" name="password" type="password" required className="pl-10" minLength={8} />
+                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} required className="pl-10 pr-10" minLength={8} />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 text-muted-foreground hover:bg-transparent"
+                  onClick={togglePasswordVisibility}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
               </div>
                <p className="text-xs text-muted-foreground">
                 Must be 8+ characters and include an uppercase, lowercase, number, and special character.
