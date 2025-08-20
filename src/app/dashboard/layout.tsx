@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import {
   SidebarProvider,
@@ -38,6 +37,7 @@ export default function DashboardLayout({
                 <AvatarFallback>U</AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden">
+                {/* Note: In a real app, you would fetch user data and display it here */}
                 <p className="truncate text-sm font-semibold">User</p>
                 <p className="truncate text-xs text-muted-foreground">
                   user@example.com
