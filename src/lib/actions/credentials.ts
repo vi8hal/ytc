@@ -8,6 +8,7 @@ import { CredentialSetSchema } from '@/lib/schemas';
 
 export type CredentialSet = {
     id: number;
+    userId: number;
     credentialName: string;
     youtubeApiKey: string;
     googleClientId: string;
@@ -112,7 +113,7 @@ export async function getCredentialSetsAction(): Promise<CredentialSet[]> {
     const client = await getClient();
     try {
         const result = await client.query(
-            'SELECT id, "credentialName", "youtubeApiKey", "googleClientId", "googleClientSecret", "googleRedirectUri", "isConnected" FROM user_credentials WHERE "userId" = $1 ORDER BY "credentialName"', 
+            'SELECT id, "userId", "credentialName", "youtubeApiKey", "googleClientId", "googleClientSecret", "googleRedirectUri", "isConnected" FROM user_credentials WHERE "userId" = $1 ORDER BY "credentialName"', 
             [userId]
         );
         return result.rows.map(row => ({...row, isConnected: row.isConnected || false}));

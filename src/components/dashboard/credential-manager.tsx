@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useActionState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil, Info, XCircle } from 'lucide-react';
+import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil, Info, XCircle, User } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
 import { saveCredentialSetAction, deleteCredentialSetAction, getCredentialSetsAction } from '@/lib/actions/credentials';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
@@ -76,44 +76,30 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 md:col-span-2">
                     <Label htmlFor="credentialName">Credential Set Name</Label>
-                    <div className="flex gap-2">
-                      <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" defaultValue={credentialSet?.credentialName ?? ''} required />
-                      <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
-                    </div>
+                    <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" defaultValue={credentialSet?.credentialName ?? ''} required />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="youtubeApiKey">YouTube Data API Key</Label>
-                    <div className="flex gap-2">
-                        <Input id="youtubeApiKey" name="youtubeApiKey" placeholder="AIzaSy..." defaultValue={credentialSet?.youtubeApiKey ?? ''} required />
-                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
-                    </div>
+                    <Input id="youtubeApiKey" name="youtubeApiKey" placeholder="AIzaSy..." defaultValue={credentialSet?.youtubeApiKey ?? ''} required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientId">Google Client ID</Label>
-                    <div className="flex gap-2">
-                        <Input id="googleClientId" name="googleClientId" placeholder="....apps.googleusercontent.com" defaultValue={credentialSet?.googleClientId ?? ''} required />
-                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
-                    </div>
+                    <Input id="googleClientId" name="googleClientId" placeholder="....apps.googleusercontent.com" defaultValue={credentialSet?.googleClientId ?? ''} required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientSecret">Google Client Secret</Label>
-                    <div className="flex gap-2">
-                        <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
-                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
-                    </div>
+                    <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
-                    <div className="flex gap-2">
-                        <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
-                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
-                    </div>
+                    <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
                 </div>
             </div>
             <div className="flex justify-end gap-2">
                 {credentialSet && (
-                    <Button variant="ghost" onClick={onClear} type="button"><XCircle className="mr-2"/>Clear Form</Button>
+                    <Button variant="outline" onClick={onClear} type="button"><XCircle className="mr-2"/>Clear Form</Button>
                 )}
+                <SaveButton isEditing={!!credentialSet} />
             </div>
         </form>
     );
@@ -202,12 +188,12 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
 
     const renderCredentialList = () => {
         if (isLoading) {
-             return (
+            return (
                 <div className="space-y-2">
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-12 w-full" />
                 </div>
-            )
+            );
         }
 
         if (credentialSets.length === 0) {
@@ -281,6 +267,10 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="space-y-4 rounded-lg border bg-background/50 p-4">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <User className="h-4 w-4" />
+                                            <span>Associated User ID: {set.userId}</span>
+                                        </div>
                                         <Alert variant="default">
                                             <Info className="h-4 w-4" />
                                             <AlertTitle>What's the difference?</AlertTitle>
@@ -360,11 +350,3 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
-
-    
-
-    
-
-    
-
-    
