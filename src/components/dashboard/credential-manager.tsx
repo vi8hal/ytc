@@ -78,12 +78,15 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                     <Label htmlFor="credentialName">Credential Set Name</Label>
                     <div className="flex gap-2">
                       <Input id="credentialName" name="credentialName" placeholder="e.g., 'My Main Account'" defaultValue={credentialSet?.credentialName ?? ''} required />
-                      <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add</Button>
+                      <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
                     </div>
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="youtubeApiKey">YouTube Data API Key</Label>
-                    <Input id="youtubeApiKey" name="youtubeApiKey" placeholder="AIzaSy..." defaultValue={credentialSet?.youtubeApiKey ?? ''} required />
+                    <div className="flex gap-2">
+                        <Input id="youtubeApiKey" name="youtubeApiKey" placeholder="AIzaSy..." defaultValue={credentialSet?.youtubeApiKey ?? ''} required />
+                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientId">Google Client ID</Label>
