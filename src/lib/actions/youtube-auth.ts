@@ -19,14 +19,14 @@ export async function getGoogleAuthUrlAction(credentialId: number) {
     const client = await getClient();
     try {
         const res = await client.query(
-            'SELECT "googleClientId", "googleRedirectUri" FROM user_credentials WHERE id = $1 AND "userId" = $2',
+            'SELECT "googleClientId", "googleClientSecret", "googleRedirectUri" FROM user_credentials WHERE id = $1 AND "userId" = $2',
             [credentialId, userId]
         );
 
         if (res.rowCount === 0) {
             return { success: false, error: 'Credential set not found or permission denied.' };
         }
-        const { googleClientId, googleRedirectUri } = res.rows[0];
+        const { googleClientId, googleClientSecret, googleRedirectUri } = res.rows[0];
 
         if (!googleClientId || !googleRedirectUri) {
              return { success: false, error: 'Client ID and Redirect URI must be configured for this credential set.' };
@@ -34,7 +34,7 @@ export async function getGoogleAuthUrlAction(credentialId: number) {
 
         const oauth2Client = new google.auth.OAuth2(
             googleClientId,
-            '', // clientSecret is not needed for generating the auth URL
+            googleClientSecret || '',
             googleRedirectUri
         );
 
