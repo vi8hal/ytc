@@ -10,11 +10,11 @@ if (!JWT_SECRET) {
 const secretKey = new TextEncoder().encode(JWT_SECRET);
 
 // --- JWT Token Management ---
-export async function createSessionToken(payload: object) {
+export async function createSessionToken(payload: object, expiresIn: string = '24h') {
   return new jose.SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('24h')
+    .setExpirationTime(expiresIn)
     .sign(secretKey);
 }
 

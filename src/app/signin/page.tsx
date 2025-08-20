@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { signInAction } from '@/lib/actions/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -65,18 +65,24 @@ export default function SignInPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline underline-offset-4">
-                  Forgot password?
-                </Link>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input id="password" name="password" type="password" required className="pl-10" />
               </div>
             </div>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="remember-me" name="remember-me" />
+                    <Label htmlFor="remember-me" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Remember me
+                    </Label>
+                </div>
+                 <Link href="/forgot-password"
+                  className="text-sm font-medium text-primary hover:underline underline-offset-4">
+                  Forgot password?
+                </Link>
+              </div>
             <SubmitButton />
           </form>
         </CardContent>

@@ -21,6 +21,7 @@ const SignUpSchema = z.object({
 const SignInSchema = z.object({
   email: EmailSchema,
   password: z.string().min(1, { message: 'Password is required.' }),
+  'remember-me': z.enum(['on']).optional(),
 });
 
 const VerifyOtpSchema = z.object({
@@ -116,6 +117,7 @@ export async function signInAction(prevState: any, formData: FormData) {
   }
   
   const { email, password } = validation.data;
+  const rememberMe = validation.data['remember-me'] === 'on';
   const client = await getClient();
 
   try {
@@ -144,8 +146,21 @@ export async function signInAction(prevState: any, formData: FormData) {
       redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
     }
 
-    const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
-    cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    const expiresIn = rememberMe ? '30d' : '24h';
+    const sessionToken = await createSessionToken({ userId: user.id, email: user.email }, expiresIn);
+    
+    const cookieOptions: any = { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production', 
+        sameSite: 'lax', 
+        path: '/' 
+    };
+
+    if (rememberMe) {
+        cookieOptions.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    }
+
+    cookies().set('session_token', sessionToken, cookieOptions);
 
   } catch (error) {
     if (error instanceof Error && error.message.includes('NEXT_REDIRECT')){
