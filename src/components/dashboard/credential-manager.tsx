@@ -114,7 +114,6 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 {credentialSet && (
                     <Button variant="ghost" onClick={onClear} type="button"><XCircle className="mr-2"/>Clear Form</Button>
                 )}
-                <SaveButton isEditing={!!credentialSet} />
             </div>
         </form>
     );
@@ -361,6 +360,8 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
+
+    
 
     
 
