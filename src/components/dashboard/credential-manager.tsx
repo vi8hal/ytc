@@ -89,7 +89,7 @@ function CredentialSetForm({ onSave, credentialSet }: { onSave: () => void, cred
 
 function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSet, onCredentialSelect, onCredentialsUpdate }: CredentialManagerProps) {
     const [credentialSets, setCredentialSets] = useState<CredentialSet[]>(initialCredentialSets);
-    const [isLoading, setIsLoading] = useState(false); // No longer loading by default
+    const [isLoading, setIsLoading] = useState(false); 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSet, setEditingSet] = useState<CredentialSet | null>(null);
     const { toast } = useToast();
@@ -146,7 +146,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
         }
     }
     
-    const handleFormSave = () => {
+    const handleFormSave = useCallback(() => {
         setIsFormOpen(false);
         setEditingSet(null);
         toast({
@@ -154,7 +154,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
             description: 'Credential set saved successfully.',
         });
         fetchCredentials();
-    }
+    }, [fetchCredentials, toast]);
 
     const handleDelete = async (id: number) => {
         const result = await deleteCredentialSetAction(id);
@@ -338,3 +338,5 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
+
+    
