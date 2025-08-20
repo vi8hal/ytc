@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useActionState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil } from 'lucide-react';
+import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil, Info } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
 import { saveCredentialSetAction, deleteCredentialSetAction } from '@/lib/actions/credentials';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
@@ -98,6 +98,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
     const fetchCredentials = useCallback(async () => {
         setIsLoading(true);
         try {
+            // This is a client component, so we must import server actions inside an async function.
             const { getCredentialSetsAction } = await import('@/lib/actions/credentials');
             const sets = await getCredentialSetsAction();
             setCredentialSets(sets);
@@ -195,10 +196,10 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                         <CardDescription>Choose a credential set for this campaign, or add a new one.</CardDescription>
                     </div>
                      <Dialog open={isFormOpen} onOpenChange={(open) => {
-                        setIsFormOpen(open);
                         if (!open) {
                             setEditingSet(null);
                         }
+                        setIsFormOpen(open);
                     }}>
                         <DialogTrigger asChild>
                             <Button variant="secondary"><PlusCircle className="mr-2"/> Add New</Button>
@@ -273,10 +274,17 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="space-y-4 rounded-lg border bg-background/50 p-4">
+                                        <Alert variant="default">
+                                            <Info className="h-4 w-4" />
+                                            <AlertTitle>What's the difference?</AlertTitle>
+                                            <AlertDescription>
+                                                Your **API Key** allows our app to search for public channels and videos. Connecting your **Google Account** (via OAuth) is what grants us permission to post comments *on your behalf*. Both are required.
+                                            </AlertDescription>
+                                        </Alert>
                                         {set.isConnected ? (
                                              <div className="space-y-3">
-                                                <Alert variant="default">
-                                                    <CheckCircle className="h-4 w-4" />
+                                                <Alert variant="default" className="border-green-500/50">
+                                                    <CheckCircle className="h-4 w-4 text-green-500" />
                                                     <AlertTitle>Account Connected</AlertTitle>
                                                     <AlertDescription>
                                                         This credential set is authorized to post comments. If you change credentials, you must reconnect.
@@ -338,5 +346,3 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
-
-    
