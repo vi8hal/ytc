@@ -6,7 +6,7 @@ import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil, Info } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
-import { saveCredentialSetAction, deleteCredentialSetAction } from '@/lib/actions/credentials';
+import { saveCredentialSetAction, deleteCredentialSetAction, getCredentialSetsAction } from '@/lib/actions/credentials';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,20 +49,28 @@ function CredentialSetForm({ onSave, credentialSet }: { onSave: () => void, cred
     const { toast } = useToast();
     
     useEffect(() => {
-        if(state?.message && !state.success) {
-            toast({
-                title: 'Save Failed',
-                description: state.message,
-                variant: 'destructive',
-            });
-        }
-        if(state?.success) {
-            onSave();
+        if(state?.message) {
+            if (state.success) {
+                onSave();
+            } else {
+                 toast({
+                    title: 'Save Failed',
+                    description: state.message,
+                    variant: 'destructive',
+                });
+            }
         }
     }, [state, onSave, toast]);
 
     return (
         <form action={formAction} id="credentialSetForm" className="space-y-4">
+            {state?.message && !state.success && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{state.message}</AlertDescription>
+                </Alert>
+            )}
             <input type="hidden" name="id" value={credentialSet?.id ?? ''} />
             <div className="space-y-2">
                 <Label htmlFor="credentialName">Credential Set Name</Label>
@@ -99,8 +107,6 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
     const fetchCredentials = useCallback(async () => {
         setIsLoading(true);
         try {
-            // This is a client component, so we must import server actions inside an async function.
-            const { getCredentialSetsAction } = await import('@/lib/actions/credentials');
             const sets = await getCredentialSetsAction();
             setCredentialSets(sets);
             onCredentialsUpdate(sets);

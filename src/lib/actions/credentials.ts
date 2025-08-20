@@ -26,7 +26,6 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     const rawData = Object.fromEntries(formData.entries());
     const id = rawData.id ? Number(rawData.id) : undefined;
     
-    // Use a refined schema for this specific action
     const SaveCredentialSetSchema = CredentialSetSchema.refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
         message: 'Google Client Secret is required for new credentials.',
         path: ['googleClientSecret']
@@ -46,7 +45,6 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     try {
         await client.query('BEGIN');
         
-        // Check for duplicate names before inserting/updating
         const duplicateCheck = await client.query(
             'SELECT id FROM user_credentials WHERE "userId" = $1 AND "credentialName" = $2 AND id != COALESCE($3, 0)',
             [userId, credentialName, id]
@@ -58,14 +56,12 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
         }
 
         if (id) {
-            // Update existing credential set
             const ownerCheck = await client.query('SELECT "googleClientSecret" FROM user_credentials WHERE id = $1 AND "userId" = $2', [id, userId]);
             if(ownerCheck.rowCount === 0) {
                  await client.query('ROLLBACK');
                  return { success: false, message: 'Permission denied.' };
             }
             
-            // Use existing secret if a new one isn't provided
             const finalSecret = (googleClientSecret && googleClientSecret.length > 0) ? googleClientSecret : ownerCheck.rows[0].googleClientSecret;
 
             await client.query(
@@ -84,7 +80,6 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
             );
 
         } else {
-            // Insert new credential set
             await client.query(
                 `INSERT INTO user_credentials ("userId", "credentialName", "youtubeApiKey", "googleClientId", "googleClientSecret", "googleRedirectUri")
                  VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -116,7 +111,10 @@ export async function getCredentialSetsAction(): Promise<CredentialSet[]> {
     
     const client = await getClient();
     try {
-        const result = await client.query('SELECT id, "credentialName", "youtubeApiKey", "googleClientId", "googleClientSecret", "googleRedirectUri", "isConnected" FROM user_credentials WHERE "userId" = $1 ORDER BY "credentialName"', [userId]);
+        const result = await client.query(
+            'SELECT id, "credentialName", "youtubeApiKey", "googleClientId", "googleClientSecret", "googleRedirectUri", "isConnected" FROM user_credentials WHERE "userId" = $1 ORDER BY "credentialName"', 
+            [userId]
+        );
         return result.rows.map(row => ({...row, isConnected: row.isConnected || false}));
     } catch (error) {
         console.error("Error fetching credential sets:", error);
@@ -136,7 +134,6 @@ export async function deleteCredentialSetAction(id: number) {
     const client = await getClient();
     try {
         await client.query('BEGIN');
-        // We need to delete campaign events and campaigns that use this credential first due to foreign key constraints.
         await client.query('DELETE FROM campaign_events WHERE "campaignId" IN (SELECT id FROM campaigns WHERE "credentialId" = $1)', [id]);
         await client.query('DELETE FROM campaigns WHERE "credentialId" = $1', [id]);
 
