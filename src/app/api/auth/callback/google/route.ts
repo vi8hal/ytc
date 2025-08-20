@@ -41,10 +41,15 @@ export async function GET(request: NextRequest) {
         }
         const { googleClientId, googleClientSecret, googleRedirectUri } = credRes.rows[0];
 
+        // This is the critical fix: we now use the exact redirect URI from the database.
+        if (!googleRedirectUri) {
+            throw new Error("Redirect URI is not configured for this credential set in the database.");
+        }
+
         const oauth2Client = new google.auth.OAuth2(
             googleClientId,
             googleClientSecret,
-            googleRedirectUri
+            googleRedirectUri // Use the URI from the database
         );
 
         const { tokens } = await oauth2Client.getToken(code);

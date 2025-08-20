@@ -116,7 +116,7 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
-                    <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
+                    <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="e.g., http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
                 </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -173,12 +173,12 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
     const handleConnect = async (credentialSet: CredentialSet) => {
         const { id } = credentialSet;
         const result = await getGoogleAuthUrlAction(id);
-        if (result.success && result.url) {
+        if (result?.success && result?.url) {
             window.location.href = result.url;
         } else {
             toast({
                 title: 'Connection Error',
-                description: result.error || 'Could not connect to YouTube. Please check credentials and try again.',
+                description: result?.error || 'Could not connect to YouTube. Please check credentials and try again.',
                 variant: 'destructive',
             })
         }
