@@ -14,7 +14,7 @@ import { getClient } from '@/lib/db';
 import { getUserIdFromSession } from '@/lib/utils/auth-helpers';
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
-import { VercelPoolClient } from '@vercel/postgres';
+import { type VercelPoolClient } from '@vercel/postgres';
 
 const CampaignInputSchema = z.object({
   credentialId: z.number().int().positive().describe('The ID of the credential set to use for this campaign.'),
@@ -34,7 +34,7 @@ const CampaignOutputSchema = z.object({
 export type CampaignOutput = z.infer<typeof CampaignOutputSchema>;
 
 async function getAuthenticatedClient(userId: number, credentialId: number): Promise<OAuth2Client> {
-    const client = await getClient();
+    const client: VercelPoolClient = await getClient();
     try {
         const res = await client.query(
             `SELECT "googleClientId", "googleClientSecret", "googleRedirectUri", "googleAccessToken", "googleRefreshToken", "googleTokenExpiry" 
@@ -61,6 +61,7 @@ async function getAuthenticatedClient(userId: number, credentialId: number): Pro
             expiry_date: credentials.googleTokenExpiry ? new Date(credentials.googleTokenExpiry).getTime() : null,
         });
         
+        // Check if the token is expired or about to expire (within 5 minutes)
         if (credentials.googleTokenExpiry && new Date() >= new Date(new Date(credentials.googleTokenExpiry).getTime() - 5 * 60 * 1000)) {
             await client.query('BEGIN');
             try {
@@ -163,6 +164,9 @@ const runCampaignFlow = ai.defineFlow(
 
           } catch (error: any) {
              console.error(`Failed to post comment to video ${videoId}:`, error.message);
+             // Do not roll back the entire transaction for a single comment failure.
+             // Instead, we can decide to log this failure somewhere or handle it gracefully.
+             // For now, we will throw, which will cause a rollback. This could be changed.
              throw new Error(`Failed to post comment to video ${videoId}. Reason: ${error.errors?.[0]?.message || error.message}. Please check your account permissions and API quota.`);
           }
         }
