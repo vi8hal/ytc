@@ -295,9 +295,9 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                                         </div>
                                         <Alert variant="default">
                                             <Info className="h-4 w-4" />
-                                            <AlertTitle>What's the difference?</AlertTitle>
+                                            <AlertTitle>API Key vs. Google Account</AlertTitle>
                                             <AlertDescription>
-                                                Your **API Key** allows our app to search for public channels and videos (read-only access). Connecting your **Google Account** (via OAuth) grants us permission to post comments *on your behalf* (write access). Both are required.
+                                                Your **API Key** allows our app to search for public channels and videos (read-only access). Connecting your **Google Account** (via OAuth) grants us permission to post comments *on your behalf* (write access). Both are required to launch a campaign, but you can search with just the API key.
                                             </AlertDescription>
                                         </Alert>
                                         {set.isConnected ? (
@@ -372,5 +372,3 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
-
-    

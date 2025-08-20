@@ -55,6 +55,8 @@ export function CampaignReview({
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const initialState = { data: null, error: null, message: null };
+  const isLaunchDisabled = disabled || !credentialSet?.isConnected;
+  
   // The action needs all the data, so we'll pass it via hidden inputs
   const runCampaignActionWithData = runCampaignAction.bind(
       null, 
@@ -106,6 +108,15 @@ export function CampaignReview({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {!credentialSet?.isConnected && (
+            <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Account Not Connected</AlertTitle>
+                <AlertDescription>
+                    You must connect the selected credential set to your Google Account before you can launch a campaign. Please go back to Step 1 to connect it.
+                </AlertDescription>
+            </Alert>
+        )}
         <div className="space-y-4 rounded-lg border bg-background/50 p-4">
             <h3 className="flex items-center gap-2 font-semibold"><CheckCircle className="h-5 w-5 text-primary"/>Configuration Summary</h3>
             
@@ -147,7 +158,7 @@ export function CampaignReview({
         </div>
         
         <form ref={formRef} action={formAction}>
-          <SubmitButton disabled={disabled} />
+          <SubmitButton disabled={isLaunchDisabled} />
         </form>
 
       </CardContent>

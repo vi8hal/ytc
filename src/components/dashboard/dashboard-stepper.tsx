@@ -49,11 +49,11 @@ export function DashboardStepper({
     }, [comments]);
 
     const steps = useMemo(() => [
-        { id: 1, title: "Credentials", isComplete: !!selectedCredentialSet?.isConnected },
+        { id: 1, title: "Credentials", isComplete: !!selectedCredentialSet?.youtubeApiKey },
         { id: 2, title: "Channels", isComplete: selectedChannels.length > 0 },
         { id: 3, title: "Videos", isComplete: selectedVideos.length > 0 },
         { id: 4, title: "Comments", isComplete: areCommentsValid },
-        { id: 5, title: "Launch", isComplete: false },
+        { id: 5, title: "Launch", isComplete: false }, // Launch step completion is handled by the component itself
     ], [selectedCredentialSet, selectedChannels, selectedVideos, areCommentsValid]);
 
     const canGoToNextStep = useMemo(() => {
@@ -191,5 +191,3 @@ export function DashboardStepper({
         </div>
     );
 }
-
-    
