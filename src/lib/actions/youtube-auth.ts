@@ -1,4 +1,3 @@
-
 'use server';
 
 import { google } from 'googleapis';
@@ -34,7 +33,7 @@ export async function getGoogleAuthUrlAction(credentialId: number) {
 
         const oauth2Client = new google.auth.OAuth2(
             googleClientId,
-            googleClientSecret || '',
+            googleClientSecret, // Pass the fetched secret
             googleRedirectUri
         );
 
