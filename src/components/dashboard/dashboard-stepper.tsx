@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CampaignOutput } from '@/ai/flows/run-campaign';
 import { CredentialManager } from './credential-manager';
