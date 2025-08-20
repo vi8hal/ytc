@@ -90,7 +90,10 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientId">Google Client ID</Label>
-                    <Input id="googleClientId" name="googleClientId" placeholder="....apps.googleusercontent.com" defaultValue={credentialSet?.googleClientId ?? ''} required />
+                    <div className="flex gap-2">
+                        <Input id="googleClientId" name="googleClientId" placeholder="....apps.googleusercontent.com" defaultValue={credentialSet?.googleClientId ?? ''} required />
+                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientSecret">Google Client Secret</Label>
