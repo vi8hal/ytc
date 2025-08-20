@@ -30,6 +30,7 @@ export async function searchChannels(apiKey: string, query: string) {
      if (error.message.includes('User not authenticated') || error.message.includes('YouTube API Key not configured')) {
       throw error;
     }
+    console.error("[YOUTUBE_SEARCH_ERROR]", error.errors || error.message);
     throw new Error('Failed to search for channels. Please check your API key and permissions.');
   }
 }
@@ -57,6 +58,7 @@ export async function getChannelVideos(apiKey: string, channelId: string) {
      if (error.code === 400 && error.errors?.[0]?.reason === 'keyInvalid') {
         throw new Error('Your YouTube API Key is invalid. Please check it in the Google Cloud Console and save it again.');
     }
+    console.error("[YOUTUBE_VIDEO_FETCH_ERROR]", error.errors || error.message);
     throw new Error('Failed to fetch videos. The selected channel may have disabled API access or your API key is invalid.');
   }
 }

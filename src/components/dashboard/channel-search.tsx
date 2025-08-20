@@ -55,9 +55,9 @@ export function ChannelSearch({ credentialSet, selectedChannels, onChannelsChang
   );
 
   useEffect(() => {
+    // Pass the current apiKey directly to ensure the most up-to-date value is used.
     debouncedSearch(searchQuery, credentialSet?.youtubeApiKey ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, credentialSet]);
+  }, [searchQuery, credentialSet, debouncedSearch]);
   
   const handleAddChannel = (channel: Channel) => {
       if (!selectedChannels.some(c => c.id === channel.id)) {
