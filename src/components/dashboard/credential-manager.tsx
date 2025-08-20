@@ -1,11 +1,12 @@
+
 'use client';
 
-import { useState, useEffect, useCallback, useActionState } from 'react';
+import { useState, useEffect, useCallback, useActionState, Suspense } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil } from 'lucide-react';
 import type { CredentialSet } from '@/lib/actions/credentials';
-import { saveCredentialSetAction, getCredentialSetsAction, deleteCredentialSetAction } from '@/lib/actions/credentials';
+import { saveCredentialSetAction, deleteCredentialSetAction } from '@/lib/actions/credentials';
 import { getGoogleAuthUrlAction } from '@/lib/actions/youtube-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,8 +20,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Skeleton } from '../ui/skeleton';
 
 interface CredentialManagerProps {
+    initialCredentialSets: CredentialSet[];
     selectedCredentialSet: CredentialSet | null;
     onCredentialSelect: (credential: CredentialSet | null) => void;
+    onCredentialsUpdate: (sets: CredentialSet[]) => void;
 }
 
 function SaveButton() {
@@ -35,7 +38,7 @@ function SaveButton() {
 function DeleteButton() {
     const { pending } = useFormStatus();
      return (
-        <AlertDialogAction disabled={pending} type="submit">
+        <AlertDialogAction disabled={pending} type="submit" variant="destructive">
             {pending ? <><Loader2 className="mr-2 animate-spin" /> Deleting...</> : <>Delete</>}
         </AlertDialogAction>
     )
@@ -84,13 +87,30 @@ function CredentialSetForm({ onSave, credentialSet }: { onSave: () => void, cred
     );
 }
 
-export function CredentialManager({ selectedCredentialSet, onCredentialSelect }: CredentialManagerProps) {
-    const [credentialSets, setCredentialSets] = useState<CredentialSet[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSet, onCredentialSelect, onCredentialsUpdate }: CredentialManagerProps) {
+    const [credentialSets, setCredentialSets] = useState<CredentialSet[]>(initialCredentialSets);
+    const [isLoading, setIsLoading] = useState(false); // No longer loading by default
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSet, setEditingSet] = useState<CredentialSet | null>(null);
     const { toast } = useToast();
     const searchParams = useSearchParams();
+
+    const fetchCredentials = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // The get action is simple, so we can call it directly,
+            // but in a more complex app, this might be a dedicated client-side fetch.
+            const { getCredentialSetsAction } = await import('@/lib/actions/credentials');
+            const sets = await getCredentialSetsAction();
+            setCredentialSets(sets);
+            onCredentialsUpdate(sets); // Notify parent of the update
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to refresh credential sets.', variant: 'destructive'});
+        } finally {
+            setIsLoading(false);
+        }
+    }, [toast, onCredentialsUpdate]);
+
 
     useEffect(() => {
         const connectStatus = searchParams.get('connect');
@@ -101,36 +121,19 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                 description: decodeURIComponent(message),
                 variant: 'destructive',
             });
+            fetchCredentials(); // Re-fetch to get latest connection status
         }
         if (connectStatus === 'success') {
              toast({
                 title: 'Connection Successful',
                 description: 'Your YouTube account has been connected successfully.',
             });
+            fetchCredentials(); // Re-fetch to get latest connection status
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams, toast]);
 
-    const fetchCredentials = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const sets = await getCredentialSetsAction();
-            setCredentialSets(sets);
-            if (selectedCredentialSet) {
-                const updatedSelected = sets.find(s => s.id === selectedCredentialSet.id) || null;
-                onCredentialSelect(updatedSelected);
-            }
-        } catch (error) {
-            toast({ title: 'Error', description: 'Failed to load credential sets.', variant: 'destructive'});
-        } finally {
-            setIsLoading(false);
-        }
-    }, [toast, onCredentialSelect, selectedCredentialSet]);
-
-    useEffect(() => {
-        fetchCredentials();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
+    
     const handleConnect = async (credentialSet: CredentialSet) => {
         const { id, googleClientId, googleRedirectUri } = credentialSet;
         if (!googleClientId || !googleRedirectUri) {
@@ -171,13 +174,13 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
             variant: result.success ? 'default' : 'destructive',
         });
         if (result.success) {
-            fetchCredentials();
             if (selectedCredentialSet?.id === id) {
                 onCredentialSelect(null);
             }
+            fetchCredentials();
         }
     }
-    
+
     if (isLoading) {
         return (
              <Card className="shadow-lg">
@@ -235,7 +238,7 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                     </Alert>
                 )}
 
-                {credentialSets && credentialSets.length > 0 ? (
+                {credentialSets.length > 0 ? (
                     <Accordion type="single" collapsible className="w-full" value={selectedCredentialSet?.id.toString()} onValueChange={(value) => {
                         const newSet = credentialSets.find(s => s.id.toString() === value) || null;
                         onCredentialSelect(newSet);
@@ -246,18 +249,18 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                     <div className="flex items-center gap-3 flex-1">
                                         <span>{set.credentialName}</span>
                                         {set.isConnected ? (
-                                            <div className="flex items-center gap-1 text-xs text-green-500"><CheckCircle className="h-3 w-3" /> Connected</div>
+                                            <Badge variant="default" className="bg-green-600/20 text-green-700 border-green-600/30 hover:bg-green-600/30"><CheckCircle className="h-3 w-3 mr-1" /> Connected</Badge>
                                         ) : (
-                                            <div className="flex items-center gap-1 text-xs text-amber-500"><AlertCircle className="h-3 w-3" /> Not Connected</div>
+                                            <Badge variant="destructive" className="bg-amber-600/10 text-amber-700 border-amber-600/20 hover:bg-amber-600/20"><AlertCircle className="h-3 w-3 mr-1" /> Not Connected</Badge>
                                         )}
                                     </div>
                                      <div className="flex items-center gap-2 mr-2">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditingSet(set); setIsFormOpen(true); }}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={(e) => { e.stopPropagation(); setEditingSet(set); setIsFormOpen(true); }}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
                                          <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={(e) => e.stopPropagation()}>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" title="Delete" onClick={(e) => e.stopPropagation()}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </AlertDialogTrigger>
@@ -298,9 +301,9 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                                             <div className="space-y-3">
                                                 <Alert variant="destructive">
                                                     <AlertCircle className="h-4 w-4" />
-                                                    <AlertTitle>Account Not Connected</AlertTitle>
+                                                    <AlertTitle>Action Required: Connect Account</AlertTitle>
                                                     <AlertDescription>
-                                                        You must connect this account to grant permission for posting comments.
+                                                        You must connect this credential set to your Google Account to grant permission for posting comments.
                                                     </AlertDescription>
                                                 </Alert>
                                                 <Button onClick={() => handleConnect(set)}>
@@ -315,13 +318,13 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
                         ))}
                     </Accordion>
                 ) : (
-                     <Alert className="text-center">
+                     <Alert className="text-center py-8">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>No Credentials Found</AlertTitle>
+                        <AlertTitle className="mb-2">No Credentials Found</AlertTitle>
                         <AlertDescription>You have no saved credentials. Click "Add New" to get started.</AlertDescription>
                     </Alert>
                 )}
-                 {!selectedCredentialSet && credentialSets && credentialSets.length > 0 && (
+                 {!selectedCredentialSet && credentialSets.length > 0 && (
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>Please expand and select a credential set from the list above to continue.</AlertDescription>
@@ -330,4 +333,18 @@ export function CredentialManager({ selectedCredentialSet, onCredentialSelect }:
             </CardContent>
         </Card>
     );
+}
+
+
+export function CredentialManager(props: CredentialManagerProps) {
+    return (
+        <Suspense fallback={
+            <Card className="shadow-lg">
+                <CardHeader><Skeleton className="h-6 w-3/4" /></CardHeader>
+                <CardContent><Skeleton className="h-10 w-full" /></CardContent>
+            </Card>
+        }>
+            <CredentialManagerInternal {...props} />
+        </Suspense>
+    )
 }

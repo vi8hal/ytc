@@ -21,25 +21,20 @@ type CampaignState = {
 }
 
 export async function runCampaignAction(
+  credentialId: number,
+  videoIds: string[],
+  comments: string[],
   prevState: CampaignState,
-  formData: FormData
+  formData: FormData // formData is not used but required by useActionState
 ): Promise<CampaignState> {
   
   try {
-    const comments = [
-      formData.get('comment1') as string,
-      formData.get('comment2') as string,
-      formData.get('comment3') as string,
-      formData.get('comment4') as string,
-    ];
-    const videoIds = (formData.get('videoIds') as string).split(',').filter(id => id);
-    const credentialId = formData.get('credentialId');
-
     const validatedData = CampaignActionSchema.safeParse({ credentialId, comments, videoIds });
 
     if (!validatedData.success) {
       const fieldErrors = validatedData.error.flatten().fieldErrors;
-      const errorMessage = Object.values(fieldErrors).flat()[0] || 'Invalid data provided.';
+      const errorMessage = Object.values(fieldErrors).flat()[0] || 'Invalid data provided for the campaign.';
+      console.error("[CAMPAIGN_VALIDATION_ERROR]", fieldErrors);
       return { data: null, error: "Validation Error", message: errorMessage };
     }
     
@@ -55,8 +50,8 @@ export async function runCampaignAction(
     return { data: result, error: null, message: 'Campaign completed successfully!' };
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-    console.error("Campaign failed:", errorMessage);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during the campaign.';
+    console.error("[CAMPAIGN_EXECUTION_ERROR]", errorMessage);
     return { data: null, error: "Campaign Error", message: errorMessage };
   }
 }
@@ -64,6 +59,7 @@ export async function runCampaignAction(
 export async function getCampaignHistory() {
     const userId = await getUserIdFromSession();
     if (!userId) {
+        console.warn("getCampaignHistory called without a valid user session.");
         return [];
     }
 
@@ -83,7 +79,8 @@ export async function getCampaignHistory() {
         `, [userId]);
         return result.rows;
     } catch (error) {
-        console.error('Failed to fetch campaign history:', error);
+        console.error('[GET_CAMPAIGN_HISTORY_ERROR]', error);
+        // Do not throw, return empty array on failure
         return [];
     } finally {
         client.release();

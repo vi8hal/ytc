@@ -12,15 +12,15 @@ import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-help
 import { EmailSchema, NameSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
 import { type VercelPoolClient } from '@vercel/postgres';
 
-const SignInSchema = z.object({
-  email: EmailSchema,
-  password: z.string().min(1, { message: 'Password is required.' }),
-});
-
 const SignUpSchema = z.object({
   name: NameSchema,
   email: EmailSchema,
   password: PasswordSchema,
+});
+
+const SignInSchema = z.object({
+  email: EmailSchema,
+  password: z.string().min(1, { message: 'Password is required.' }),
 });
 
 const VerifyOtpSchema = z.object({
@@ -36,7 +36,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     if (!validation.success) {
         const errors = validation.error.flatten().fieldErrors;
         const errorMessage = Object.values(errors).flat()[0] || 'Invalid input.';
-        return { error: errorMessage, showVerificationLink: false };
+        return { error: errorMessage, showVerificationLink: false, email: null };
     }
     
     const { name, email, password } = validation.data;
@@ -51,9 +51,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
         if (existingUser) {
             if (existingUser.verified) {
                 await client.query('ROLLBACK');
-                return { error: 'An account with this email already exists and is verified.', showVerificationLink: false, email: null };
+                return { error: 'An account with this email already exists and is verified.', showVerificationLink: false, email: email };
             } else {
-                // User exists but is not verified, treat as a re-verification attempt.
+                // User exists but is not verified. Resend OTP and guide them to verify.
                 const otp = await generateAndSaveOtp(client, email);
                 await sendVerificationEmail(
                     email, 
@@ -68,15 +68,15 @@ export async function signUpAction(prevState: any, formData: FormData) {
                 );
                 
                 await client.query('COMMIT');
-                // Return a specific state to show the verification link
                 return { error: "This email is already registered but not verified. We've sent a new code.", showVerificationLink: true, email };
             }
         }
 
+        // This is a new user
         const hashedPassword = bcrypt.hashSync(password, 10);
         
         await client.query(
-            'INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, $4) RETURNING id',
+            'INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, $4)',
             [name, email, hashedPassword, false]
         );
 
@@ -99,8 +99,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
     } catch (error) {
         await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
-        console.error('An unexpected error occurred during sign-up:', error);
-        return { error: 'An unexpected server error occurred.', showVerificationLink: false, email: null };
+        console.error('[SIGNUP_ERROR]', error);
+        return { error: 'An unexpected server error occurred. Please try again.', showVerificationLink: false, email: email };
     } finally {
         client.release();
     }
@@ -149,12 +149,10 @@ export async function signInAction(prevState: any, formData: FormData) {
 
   } catch (error) {
     if (error instanceof Error && error.message.includes('NEXT_REDIRECT')){
-        // The rollback might fail if the transaction was already committed or failed,
-        // but it's safe to try.
-        await client.query('ROLLBACK').catch(e => console.error("Rollback failed in signInAction:", e));
+        await client.query('ROLLBACK').catch(e => console.error("[SIGNIN_ROLLBACK_ERROR]", e));
         throw error;
     };
-    console.error('An unexpected error occurred during sign-in:', error);
+    console.error('[SIGNIN_ERROR]', error);
     return { error: 'An unexpected server error occurred. Please try again.' };
   } finally {
       client.release();
@@ -180,6 +178,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     try {
         await client.query('BEGIN');
 
+        // Lock the row for update to prevent race conditions
         const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const user = result.rows[0];
 
@@ -211,7 +210,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     } catch (error) {
         await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
-        console.error('An unexpected error occurred during OTP verification:', error);
+        console.error('[VERIFY_OTP_ERROR]', error);
         return { error: 'An unexpected server error occurred.' };
     } finally {
         client.release();
@@ -223,18 +222,18 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
 export async function resendOtpAction(email: string): Promise<{error?: string | null, success?: string | null}> {
     const client = await getClient();
     try {
-        await client.query('BEGIN');
         const validation = EmailSchema.safeParse(email);
         if (!validation.success) {
-            await client.query('ROLLBACK');
             return { error: "Invalid email address." };
         }
+        
+        await client.query('BEGIN');
 
         const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
         const user = result.rows[0];
 
         if (!user) {
-             await client.query('ROLLBACK');
+            await client.query('ROLLBACK');
             return { error: 'No user found with this email. Please sign up first.' };
         }
         if (user.verified) {
@@ -258,7 +257,7 @@ export async function resendOtpAction(email: string): Promise<{error?: string | 
         return { success: 'A new verification code has been sent to your email.' };
     } catch(e) {
         await client.query('ROLLBACK');
-        console.error("Error in resendOtpAction:", e);
+        console.error("[RESEND_OTP_ERROR]", e);
         return { error: 'An unexpected error occurred while resending the code.' };
     } finally {
         client.release();
@@ -275,5 +274,3 @@ export async function logOutAction() {
     
     redirect('/signin');
 }
-
-    

@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import type { Video, Channel } from './dashboard-client';
 import { Skeleton } from '../ui/skeleton';
-import { Alert, AlertDescription } from '../ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { cn } from '@/lib/utils';
@@ -25,37 +25,45 @@ interface VideoSelectionProps {
 }
 
 export function VideoSelection({ credentialSet, channels, selectedVideos, onSelectedVideosChange, disabled = false }: VideoSelectionProps) {
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videosByChannel, setVideosByChannel] = useState<Record<string, Video[]>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const allFetchedVideos = Object.values(videosByChannel).flat();
 
   useEffect(() => {
     const fetchVideos = async () => {
       if (channels.length === 0 || !credentialSet?.youtubeApiKey) {
-        setVideos([]);
+        setVideosByChannel({});
         return;
       }
       setIsLoading(true);
       setError(null);
-      setVideos([]);
+      setVideosByChannel({});
       onSelectedVideosChange([]); // Clear previous selections
       try {
-        const videoPromises = channels.map(channel => getChannelVideos(credentialSet.youtubeApiKey, channel.id));
+        const videoPromises = channels.map(channel => 
+            getChannelVideos(credentialSet.youtubeApiKey, channel.id)
+                .then(videos => ({ channelId: channel.id, videos }))
+        );
         const allChannelVideos = await Promise.all(videoPromises);
         
-        const videosWithChannelInfo = allChannelVideos.flatMap((channelVideos, index) => {
-            const channel = channels[index];
-            return channelVideos.map(video => ({
-                ...video,
-                channelId: channel.id,
-                channelTitle: channel.name,
-            }))
+        const videosMap: Record<string, Video[]> = {};
+        allChannelVideos.forEach(result => {
+            const channel = channels.find(c => c.id === result.channelId);
+            if(channel) {
+                videosMap[result.channelId] = result.videos.map(video => ({
+                    ...video,
+                    channelId: channel.id,
+                    channelTitle: channel.name,
+                }));
+            }
         });
 
-        setVideos(videosWithChannelInfo);
+        setVideosByChannel(videosMap);
       } catch (error: any) {
         setError(error.message || 'An unknown error occurred.');
-        setVideos([]);
+        setVideosByChannel({});
       } finally {
         setIsLoading(false);
       }
@@ -75,18 +83,8 @@ export function VideoSelection({ credentialSet, channels, selectedVideos, onSele
       onSelectedVideosChange(selectedVideos.filter((v) => v.id !== video.id));
     }
   };
-
-  const isAllSelected = !isLoading && videos.length > 0 && selectedVideos.length === Math.min(videos.length, MAX_VIDEOS);
-  const isSomeSelected = selectedVideos.length > 0 && !isAllSelected;
+  
   const atVideoLimit = selectedVideos.length >= MAX_VIDEOS;
-
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      onSelectedVideosChange(videos.slice(0, MAX_VIDEOS));
-    } else {
-      onSelectedVideosChange([]);
-    }
-  }
 
   const renderContent = () => {
     if (disabled) {
@@ -110,28 +108,25 @@ export function VideoSelection({ credentialSet, channels, selectedVideos, onSele
        return (
         <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error Fetching Videos</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       );
     }
 
-    if (videos.length === 0) {
+    if (Object.keys(videosByChannel).length === 0) {
       return (
-        <p className="text-center text-muted-foreground text-sm py-8">No videos found for the selected channels.</p>
+        <Alert className="text-center py-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="mb-2">No Videos Found</AlertTitle>
+            <AlertDescription>No recent videos were found for the selected channels, or the channels may be private.</AlertDescription>
+        </Alert>
       );
     }
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors border">
-              <Checkbox
-                id="select-all"
-                checked={isAllSelected}
-                onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
-                aria-label="Select all videos"
-                data-state={isSomeSelected ? 'indeterminate' : (isAllSelected ? 'checked' : 'unchecked')}
-                disabled={isLoading || videos.length === 0}
-              />
+            <div className="flex items-center space-x-3 p-2 rounded-md border">
               <Label htmlFor="select-all" className="font-semibold flex-1 cursor-pointer text-sm">
                 Select up to {MAX_VIDEOS} videos ({selectedVideos.length} / {MAX_VIDEOS})
               </Label>
@@ -145,12 +140,12 @@ export function VideoSelection({ credentialSet, channels, selectedVideos, onSele
             <div className="space-y-2 max-h-[30rem] overflow-y-auto pr-2 border rounded-md">
                 <Accordion type="multiple" className="w-full" defaultValue={channels.map(c => c.id)}>
                     {channels.map(channel => {
-                        const channelVideos = videos.filter(v => v.channelId === channel.id);
+                        const channelVideos = videosByChannel[channel.id] || [];
                         if (channelVideos.length === 0) return null;
                         return (
                             <AccordionItem value={channel.id} key={channel.id}>
                                 <AccordionTrigger className="p-2 font-semibold hover:no-underline hover:bg-muted/50 rounded-md">
-                                    {channel.name} ({channelVideos.length} videos)
+                                    {channel.name} ({channelVideos.length} videos found)
                                 </AccordionTrigger>
                                 <AccordionContent className="p-1">
                                     <div className="space-y-1 pl-2">

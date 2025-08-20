@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,6 +8,7 @@ import { CredentialManager } from './credential-manager';
 import { ChannelSearch } from './channel-search';
 import { VideoSelection } from './video-selection';
 import { CommentForm } from './comment-form';
+import { CampaignReview } from './campaign-review';
 import { Button } from '@/components/ui/button';
 import { Check, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,6 +16,9 @@ import type { Video, Channel } from './dashboard-client';
 import type { CredentialSet } from '@/lib/actions/credentials';
 
 type StepperProps = {
+    initialCredentialSets: CredentialSet[];
+    onCredentialsUpdate: (sets: CredentialSet[]) => void;
+
     selectedCredentialSet: CredentialSet | null;
     onCredentialSelect: (credential: CredentialSet | null) => void;
 
@@ -22,32 +27,38 @@ type StepperProps = {
     
     selectedVideos: Video[];
     onSelectedVideosChange: (videos: Video[]) => void;
+
+    comments: string[];
+    onCommentsChange: (comments: string[]) => void;
     
     onCampaignComplete: (results: CampaignOutput['results']) => void;
 };
 
 export function DashboardStepper({
+    initialCredentialSets, onCredentialsUpdate,
     selectedCredentialSet, onCredentialSelect,
     selectedChannels, onChannelsChange,
     selectedVideos, onSelectedVideosChange,
+    comments, onCommentsChange,
     onCampaignComplete
 }: StepperProps) {
     const [currentStep, setCurrentStep] = useState(1);
 
+    const areCommentsValid = useMemo(() => {
+        return comments.every(c => c.trim().length > 0) && comments.length === 4;
+    }, [comments]);
+
     const steps = useMemo(() => [
-        { id: 1, title: "Select Credentials", isComplete: !!selectedCredentialSet?.isConnected },
-        { id: 2, title: "Select Channels", isComplete: selectedChannels.length > 0 },
-        { id: 3, title: "Select Videos", isComplete: selectedVideos.length > 0 },
-        { id: 4, title: "Launch Campaign", isComplete: false },
-    ], [selectedCredentialSet, selectedChannels, selectedVideos]);
+        { id: 1, title: "Credentials", isComplete: !!selectedCredentialSet?.isConnected },
+        { id: 2, title: "Channels", isComplete: selectedChannels.length > 0 },
+        { id: 3, title: "Videos", isComplete: selectedVideos.length > 0 },
+        { id: 4, title: "Comments", isComplete: areCommentsValid },
+        { id: 5, title: "Launch", isComplete: false },
+    ], [selectedCredentialSet, selectedChannels, selectedVideos, areCommentsValid]);
 
     const canGoToNextStep = useMemo(() => {
-        switch (currentStep) {
-            case 1: return steps[0].isComplete;
-            case 2: return steps[1].isComplete;
-            case 3: return steps[2].isComplete;
-            default: return false;
-        }
+        if (currentStep >= steps.length) return false;
+        return steps[currentStep - 1].isComplete;
     }, [currentStep, steps]);
 
     const goToNextStep = () => {
@@ -61,11 +72,17 @@ export function DashboardStepper({
     };
     
     const goToStep = (stepId: number) => {
-        // Allow navigation only to completed steps or the current step
-        if (steps[stepId - 1].isComplete || stepId === currentStep) {
-            setCurrentStep(stepId);
+        // Allow navigation only to previously completed steps or the one after the last completed step
+        const lastCompletedStepIndex = steps.findLastIndex(s => s.isComplete);
+        if (stepId <= lastCompletedStepIndex + 2 && stepId <= currentStep) {
+           setCurrentStep(stepId);
         }
     }
+
+    const nextButtonText = useMemo(() => {
+        if(currentStep >= steps.length) return "Finish";
+        return `Next: ${steps[currentStep].title}`;
+    }, [currentStep, steps]);
     
     const variants = {
         hidden: { opacity: 0, x: 50 },
@@ -78,27 +95,29 @@ export function DashboardStepper({
             {/* Stepper Navigation */}
             <div className="flex items-center justify-between border-b pb-4">
                 {steps.map((step, index) => (
-                    <div key={step.id} className="flex items-center">
-                        <button
-                            onClick={() => goToStep(step.id)}
-                            disabled={index > 0 && !steps[index - 1].isComplete}
-                            className={cn(
-                                "flex items-center gap-2 text-sm font-medium transition-colors disabled:cursor-not-allowed",
-                                currentStep === step.id ? "text-primary" : "text-muted-foreground hover:text-foreground disabled:hover:text-muted-foreground"
-                            )}
-                        >
-                            <div className={cn(
-                                "flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs",
-                                currentStep === step.id ? "border-primary bg-primary/10" :
-                                step.isComplete ? "border-green-500 bg-green-500/10 text-green-600" :
-                                "border-border"
-                            )}>
-                                {step.isComplete && currentStep !== step.id ? <Check size={14} /> : step.id}
-                            </div>
-                            <span className="hidden md:inline">{step.title}</span>
-                        </button>
-                        {index < steps.length - 1 && <div className="mx-4 h-px w-8 flex-1 bg-border" />}
-                    </div>
+                    <React.Fragment key={step.id}>
+                        <div className="flex items-center">
+                            <button
+                                onClick={() => goToStep(step.id)}
+                                disabled={index > 0 && !steps[index - 1].isComplete && currentStep < step.id}
+                                className={cn(
+                                    "flex items-center gap-2 text-sm font-medium transition-colors disabled:cursor-not-allowed",
+                                    currentStep === step.id ? "text-primary" : "text-muted-foreground hover:text-foreground disabled:hover:text-muted-foreground"
+                                )}
+                            >
+                                <div className={cn(
+                                    "flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs transition-colors",
+                                    currentStep === step.id ? "border-primary bg-primary/10" :
+                                    step.isComplete ? "border-green-500 bg-green-500/10 text-green-600" :
+                                    "border-border"
+                                )}>
+                                    {step.isComplete && currentStep !== step.id ? <Check size={14} /> : step.id}
+                                </div>
+                                <span className="hidden md:inline">{step.title}</span>
+                            </button>
+                        </div>
+                        {index < steps.length - 1 && <div className={cn("mx-4 h-px flex-1 bg-border transition-colors", { "bg-primary": currentStep > index + 1 || steps[index].isComplete })} />}
+                    </React.Fragment>
                 ))}
             </div>
 
@@ -114,8 +133,10 @@ export function DashboardStepper({
                 >
                     {currentStep === 1 && (
                          <CredentialManager
+                            initialCredentialSets={initialCredentialSets}
                             selectedCredentialSet={selectedCredentialSet}
                             onCredentialSelect={onCredentialSelect}
+                            onCredentialsUpdate={onCredentialsUpdate}
                         />
                     )}
                     {currentStep === 2 && (
@@ -137,11 +158,19 @@ export function DashboardStepper({
                     )}
                      {currentStep === 4 && (
                         <CommentForm
-                            credentialSet={selectedCredentialSet}
-                            selectedVideos={selectedVideos}
-                            onCampaignComplete={onCampaignComplete}
+                            onCommentsChange={onCommentsChange}
                             disabled={!steps[2].isComplete}
                         />
+                     )}
+                     {currentStep === 5 && (
+                         <CampaignReview
+                            credentialSet={selectedCredentialSet}
+                            selectedChannels={selectedChannels}
+                            selectedVideos={selectedVideos}
+                            comments={comments}
+                            onCampaignComplete={onCampaignComplete}
+                            disabled={!steps[3].isComplete}
+                         />
                      )}
                  </motion.div>
             </AnimatePresence>
@@ -152,10 +181,12 @@ export function DashboardStepper({
                     <ArrowLeft className="mr-2" />
                     Previous
                 </Button>
-                <Button onClick={goToNextStep} disabled={!canGoToNextStep}>
-                    Next
-                    <ArrowRight className="ml-2" />
-                </Button>
+                {currentStep < steps.length && (
+                    <Button onClick={goToNextStep} disabled={!canGoToNextStep}>
+                        {nextButtonText}
+                        <ArrowRight className="ml-2" />
+                    </Button>
+                )}
             </div>
         </div>
     );

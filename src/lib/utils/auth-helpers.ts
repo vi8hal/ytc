@@ -1,5 +1,4 @@
 
-import { db } from '@/lib/db';
 import { verifySessionToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import nodemailer from 'nodemailer';
@@ -12,7 +11,7 @@ export async function getUserIdFromSession() {
       const payload = await verifySessionToken(sessionToken);
       return payload?.userId as number | null;
     } catch(e) {
-      console.error("Session token verification failed:", e);
+      console.error("[SESSION_VERIFICATION_FAILED]", e);
       return null;
     }
 }
@@ -38,11 +37,19 @@ export async function sendVerificationEmail(email: string, otp: string, subject:
 
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('Failed to send email:', error);
-    throw new Error('Could not send email. Please check server configuration.');
+    console.error('[EMAIL_SEND_ERROR]', error);
+    // This is a critical failure, so we throw to ensure the transaction is rolled back.
+    throw new Error('Could not send verification email. Please check server configuration.');
   }
 }
 
+/**
+ * Generates a 6-digit OTP and saves it to the database for the specified email.
+ * IMPORTANT: This function must be called within an active database transaction.
+ * @param client The active VercelPoolClient instance from an ongoing transaction.
+ * @param email The user's email to associate the OTP with.
+ * @returns The generated OTP string.
+ */
 export async function generateAndSaveOtp(client: VercelPoolClient, email: string) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes

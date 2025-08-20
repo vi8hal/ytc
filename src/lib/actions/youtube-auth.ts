@@ -2,109 +2,83 @@
 'use server';
 
 import { google } from 'googleapis';
-import { getUserIdFromSession } from '../utils/auth-helpers';
-import { getClient } from '../db';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
+import { getClient } from '@/lib/db';
 
-const AuthParamsSchema = z.object({
-    credentialId: z.coerce.number().int().positive(),
-    clientId: z.string().min(1),
-    redirectUri: z.string().min(1),
-});
+// Scopes for read-only access to YouTube channels.
+const scopes = [
+  'https://www.googleapis.com/auth/youtube.readonly',
+];
 
 export async function getGoogleAuthUrlAction(credentialId: number, clientId: string, redirectUri: string) {
     try {
-        const validation = AuthParamsSchema.safeParse({ credentialId, clientId, redirectUri });
-        if (!validation.success) {
-            throw new Error("Invalid credential information provided.");
-        }
-        
         const oauth2Client = new google.auth.OAuth2(
-            validation.data.clientId,
-            // The client secret is retrieved on the server in the callback, not exposed here.
-            undefined, 
-            validation.data.redirectUri
+            clientId,
+            '', // clientSecret is not needed for generating the auth URL
+            redirectUri
         );
 
-        // We store the credentialId in the state to retrieve the correct secret in the callback
-        const state = JSON.stringify({ credentialId: validation.data.credentialId });
-
-        const url = oauth2Client.generateAuthUrl({
+        const authorizeUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline',
-            scope: [
-                'https://www.googleapis.com/auth/youtube.force-ssl'
-            ],
-            prompt: 'consent',
-            state: Buffer.from(state).toString('base64'), // Pass state to callback
+            scope: scopes,
+            state: credentialId.toString(), // Pass credentialId as state
         });
-        return { success: true, url };
-    } catch (error: any) {
-        console.error("Error generating Google Auth URL:", error.message);
-        return { success: false, error: error.message };
+        
+        return { success: true, url: authorizeUrl };
+    } catch (error) {
+        console.error("Error generating Google Auth URL:", error);
+        return { success: false, error: 'Failed to generate authentication URL.' };
     }
 }
 
-export async function setGoogleCredentialsAction(code: string, state: string) {
-    const client = await getClient();
-    let redirectUrl = '/dashboard';
+export async function handleGoogleCallbackAction(code: string, state: string, clientId: string, clientSecret: string, redirectUri: string) {
+    let client;
     try {
-        await client.query('BEGIN');
-        
-        const userId = await getUserIdFromSession();
-        if (!userId) {
-            throw new Error("User not authenticated.");
-        }
-
-        const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('ascii'));
-        const credentialId = z.coerce.number().int().positive().parse(decodedState.credentialId);
-        
-        const credResult = await client.query(
-            'SELECT "googleClientId", "googleClientSecret", "googleRedirectUri" FROM user_credentials WHERE id = $1 AND "userId" = $2',
-            [credentialId, userId]
-        );
-
-        const credentials = credResult.rows[0];
-        if (!credentials) {
-            throw new Error("Could not find the specified credentials for this user.");
+        const credentialId = parseInt(state, 10); // Retrieve credentialId from state
+        if (isNaN(credentialId)) {
+            throw new Error('Invalid credential ID provided.');
         }
 
         const oauth2Client = new google.auth.OAuth2(
-            credentials.googleClientId,
-            credentials.googleClientSecret,
-            credentials.googleRedirectUri
+            clientId,
+            clientSecret,
+            redirectUri
         );
 
         const { tokens } = await oauth2Client.getToken(code);
+        oauth2Client.setCredentials(tokens);
+
+        // Check the connection by fetching the user's channels.
+        const youtube = google.youtube({
+            version: 'v3',
+            auth: oauth2Client,
+        });
         
-        if (!tokens.access_token || !tokens.refresh_token || !tokens.expiry_date) {
-            throw new Error('Failed to retrieve the necessary authentication tokens from Google. Please try connecting again.');
-        }
+        await youtube.channels.list({
+            part: ['id'],
+            mine: true,
+        });
 
+        // Save the tokens to the database.
+        client = await getClient();
+        await client.query('BEGIN');
         await client.query(
-            `UPDATE user_credentials 
-             SET "googleAccessToken" = $1, "googleRefreshToken" = $2, "googleTokenExpiry" = $3, "isConnected" = TRUE
-             WHERE id = $4 AND "userId" = $5`,
-            [
-                tokens.access_token,
-                tokens.refresh_token,
-                new Date(tokens.expiry_date),
-                credentialId,
-                userId
-            ]
+            'UPDATE user_credentials SET "googleAccessToken" = $1, "googleRefreshToken" = $2, "isConnected" = TRUE WHERE id = $3',
+            [tokens.access_token, tokens.refresh_token, credentialId]
         );
-
         await client.query('COMMIT');
-        redirectUrl = '/dashboard?connect=success';
-
+        
+        redirect(`/dashboard?connect=success`);
     } catch (error: any) {
-        await client.query('ROLLBACK');
-        console.error('Error setting Google credentials:', error.message);
-        const errorMessage = encodeURIComponent(error.message || 'An unknown error occurred during authentication.');
-        redirectUrl = `/dashboard?connect=error&message=${errorMessage}`;
+        console.error("Error during Google callback:", error);
+        const message = encodeURIComponent(error.message || 'An unexpected error occurred during authentication.');
+        if(client) {
+           await client.query('ROLLBACK').catch(e => console.error("[GOOGLE_CALLBACK_ROLLBACK_ERROR]", e));
+        }
+        redirect(`/dashboard?connect=error&message=${message}`);
     } finally {
-        client.release();
+        if(client) {
+           client.release();
+        }
     }
-    
-    redirect(redirectUrl);
 }

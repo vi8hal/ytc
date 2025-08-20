@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { getClient } from '@/lib/db';
 import { sendVerificationEmail, generateAndSaveOtp } from '@/lib/utils/auth-helpers';
 import { EmailSchema, OTPSchema, PasswordSchema } from '@/lib/schemas';
-import { type VercelPoolClient } from '@vercel/postgres';
 
 const ResetPasswordSchema = z.object({
     email: EmailSchema,
@@ -48,7 +47,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
         await client.query('COMMIT');
     } catch(e) {
         await client.query('ROLLBACK');
-        console.error("Error in forgot password action:", e);
+        console.error("[FORGOT_PASSWORD_ERROR]", e);
         // Do not expose internal errors to the client.
     } finally {
         client.release();
@@ -95,7 +94,7 @@ export async function resetPasswordAction(prevState: any, formData: FormData) {
     } catch (error) {
         await client.query('ROLLBACK');
         if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) throw error;
-        console.error('An unexpected error occurred during password reset:', error);
+        console.error('[RESET_PASSWORD_ERROR]', error);
         return { error: 'An unexpected server error occurred.' };
     } finally {
         client.release();

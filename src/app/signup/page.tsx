@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { ArrowRight, KeyRound, Loader2, Mail, User, ShieldCheck } from 'lucide-react';
@@ -37,6 +37,13 @@ export default function SignUpPage() {
   const [state, formAction] = useActionState(signUpAction, { error: null, showVerificationLink: false, email: null });
   const [email, setEmail] = useState('');
 
+  // When the action returns a specific email, update the local state
+  useEffect(() => {
+    if (state?.email && !email) {
+      setEmail(state.email);
+    }
+  }, [state?.email, email]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
@@ -50,7 +57,7 @@ export default function SignUpPage() {
         <CardContent className="space-y-6">
           {state?.error && (
               <Alert variant={state.showVerificationLink ? 'default' : 'destructive'} className={state.showVerificationLink ? 'border-primary/50' : ''}>
-                  {state.showVerificationLink && <ShieldCheck className="h-4 w-4" />}
+                  {state.showVerificationLink ? <ShieldCheck className="h-4 w-4" /> : null}
                   <AlertTitle>{state.showVerificationLink ? 'Account Exists' : 'Registration Failed'}</AlertTitle>
                   <AlertDescription>
                     {state.error}
@@ -123,5 +130,3 @@ export default function SignUpPage() {
     </div>
   );
 }
-
-    
