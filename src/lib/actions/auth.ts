@@ -146,7 +146,10 @@ export async function signInAction(prevState: any, formData: FormData) {
       redirect(`/verify-otp?email=${encodeURIComponent(email)}`);
     }
 
-    const expiresIn = rememberMe ? '30d' : '24h';
+    const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
+    const oneDayInSeconds = 24 * 60 * 60;
+    const expiresIn = rememberMe ? `${thirtyDaysInSeconds}s` : `${oneDayInSeconds}s`;
+
     const sessionToken = await createSessionToken({ userId: user.id, email: user.email }, expiresIn);
     
     const cookieOptions: any = { 
@@ -157,7 +160,7 @@ export async function signInAction(prevState: any, formData: FormData) {
     };
 
     if (rememberMe) {
-        cookieOptions.expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+        cookieOptions.maxAge = thirtyDaysInSeconds;
     }
 
     cookies().set('session_token', sessionToken, cookieOptions);
@@ -289,3 +292,5 @@ export async function logOutAction() {
     
     redirect('/signin');
 }
+
+    

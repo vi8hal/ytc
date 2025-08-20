@@ -16,7 +16,7 @@ import type { Video, Channel } from './dashboard-client';
 import type { CredentialSet } from '@/lib/actions/credentials';
 
 type StepperProps = {
-    initialCredentialSets: CredentialSet[];
+    credentialSets: CredentialSet[];
     onCredentialsUpdate: (sets: CredentialSet[]) => void;
 
     selectedCredentialSet: CredentialSet | null;
@@ -35,7 +35,7 @@ type StepperProps = {
 };
 
 export function DashboardStepper({
-    initialCredentialSets, onCredentialsUpdate,
+    credentialSets, onCredentialsUpdate,
     selectedCredentialSet, onCredentialSelect,
     selectedChannels, onChannelsChange,
     selectedVideos, onSelectedVideosChange,
@@ -133,7 +133,7 @@ export function DashboardStepper({
                 >
                     {currentStep === 1 && (
                          <CredentialManager
-                            initialCredentialSets={initialCredentialSets}
+                            initialCredentialSets={credentialSets}
                             selectedCredentialSet={selectedCredentialSet}
                             onCredentialSelect={onCredentialSelect}
                             onCredentialsUpdate={onCredentialsUpdate}
@@ -191,3 +191,5 @@ export function DashboardStepper({
         </div>
     );
 }
+
+    

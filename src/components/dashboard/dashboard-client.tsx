@@ -40,7 +40,7 @@ export function DashboardClient({ initialCampaigns, initialCredentialSets }: Das
 
   const handleCampaignComplete = (results: CampaignOutput['results']) => {
     setCampaignResults(results);
-    // Refresh campaign history
+    // Refresh campaign history after a successful run
     const { getCampaignHistory } = require('@/lib/actions/campaign');
     getCampaignHistory().then(setCampaignHistory);
     // Reset selections for the next campaign
@@ -57,6 +57,7 @@ export function DashboardClient({ initialCampaigns, initialCredentialSets }: Das
   
   const handleCredentialsUpdate = (sets: CredentialSet[]) => {
     setCredentialSets(sets);
+    // If a credential set was selected, find its updated version in the new list
     if (selectedCredentialSet) {
         const updatedSelected = sets.find(s => s.id === selectedCredentialSet.id) || null;
         setSelectedCredentialSet(updatedSelected);
@@ -66,7 +67,7 @@ export function DashboardClient({ initialCampaigns, initialCredentialSets }: Das
   return (
     <div className="space-y-8">
         <DashboardStepper
-            initialCredentialSets={credentialSets}
+            credentialSets={credentialSets}
             onCredentialsUpdate={handleCredentialsUpdate}
             selectedCredentialSet={selectedCredentialSet}
             onCredentialSelect={handleCredentialSelect}
@@ -95,3 +96,5 @@ export function DashboardClient({ initialCampaigns, initialCredentialSets }: Das
     </div>
   );
 }
+
+    

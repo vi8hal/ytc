@@ -33,64 +33,60 @@ const CampaignOutputSchema = z.object({
 });
 export type CampaignOutput = z.infer<typeof CampaignOutputSchema>;
 
-async function getAuthenticatedClient(userId: number, credentialId: number): Promise<OAuth2Client> {
-    const client: VercelPoolClient = await getClient();
-    try {
-        const res = await client.query(
-            `SELECT "googleClientId", "googleClientSecret", "googleRedirectUri", "googleAccessToken", "googleRefreshToken", "googleTokenExpiry" 
-             FROM user_credentials WHERE "userId" = $1 AND id = $2`,
-            [userId, credentialId]
-        );
-        const credentials = res.rows[0];
-        if (!credentials) {
-            throw new Error("Could not find the specified credentials for this user.");
-        }
-        if (!credentials.googleAccessToken || !credentials.googleRefreshToken) {
-            throw new Error("YouTube account not connected or tokens are missing for this credential set.");
-        }
-
-        const oauth2Client = new google.auth.OAuth2(
-            credentials.googleClientId,
-            credentials.googleClientSecret,
-            credentials.googleRedirectUri
-        );
-
-        oauth2Client.setCredentials({
-            access_token: credentials.googleAccessToken,
-            refresh_token: credentials.googleRefreshToken,
-            expiry_date: credentials.googleTokenExpiry ? new Date(credentials.googleTokenExpiry).getTime() : null,
-        });
-        
-        // Check if the token is expired or about to expire (within 5 minutes)
-        if (credentials.googleTokenExpiry && new Date() >= new Date(new Date(credentials.googleTokenExpiry).getTime() - 5 * 60 * 1000)) {
-            await client.query('BEGIN');
-            try {
-                const { credentials: newTokens } = await oauth2Client.refreshAccessToken();
-                
-                await client.query(
-                    `UPDATE user_credentials 
-                     SET "googleAccessToken" = $1, "googleTokenExpiry" = $2, "googleRefreshToken" = $3
-                     WHERE id = $4`,
-                    [
-                        newTokens.access_token,
-                        newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
-                        newTokens.refresh_token || credentials.googleRefreshToken,
-                        credentialId
-                    ]
-                );
-                oauth2Client.setCredentials(newTokens);
-                await client.query('COMMIT');
-            } catch (refreshError) {
-                await client.query('ROLLBACK');
-                console.error("Error refreshing access token, rolling back.", refreshError);
-                throw new Error("Failed to refresh access token. Please reconnect your account.");
-            }
-        }
-
-        return oauth2Client;
-    } finally {
-        client.release();
+async function getAuthenticatedClient(dbClient: VercelPoolClient, userId: number, credentialId: number): Promise<OAuth2Client> {
+    // This function now expects to be called within an existing transaction.
+    // It will participate in the transaction but not commit or rollback on its own.
+    const res = await dbClient.query(
+        `SELECT "googleClientId", "googleClientSecret", "googleRedirectUri", "googleAccessToken", "googleRefreshToken", "googleTokenExpiry" 
+         FROM user_credentials WHERE "userId" = $1 AND id = $2 FOR UPDATE`, // Lock the row
+        [userId, credentialId]
+    );
+    const credentials = res.rows[0];
+    if (!credentials) {
+        throw new Error("Could not find the specified credentials for this user.");
     }
+    if (!credentials.googleAccessToken || !credentials.googleRefreshToken) {
+        throw new Error("YouTube account not connected or tokens are missing for this credential set.");
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+        credentials.googleClientId,
+        credentials.googleClientSecret,
+        credentials.googleRedirectUri
+    );
+
+    oauth2Client.setCredentials({
+        access_token: credentials.googleAccessToken,
+        refresh_token: credentials.googleRefreshToken,
+        expiry_date: credentials.googleTokenExpiry ? new Date(credentials.googleTokenExpiry).getTime() : null,
+    });
+    
+    // Check if the token is expired or about to expire (within 5 minutes)
+    if (credentials.googleTokenExpiry && new Date() >= new Date(new Date(credentials.googleTokenExpiry).getTime() - 5 * 60 * 1000)) {
+        console.log(`Refreshing token for credentialId: ${credentialId}`);
+        try {
+            const { credentials: newTokens } = await oauth2Client.refreshAccessToken();
+            
+            await dbClient.query(
+                `UPDATE user_credentials 
+                 SET "googleAccessToken" = $1, "googleTokenExpiry" = $2, "googleRefreshToken" = $3
+                 WHERE id = $4`,
+                [
+                    newTokens.access_token,
+                    newTokens.expiry_date ? new Date(newTokens.expiry_date) : null,
+                    newTokens.refresh_token || credentials.googleRefreshToken,
+                    credentialId
+                ]
+            );
+            oauth2Client.setCredentials(newTokens);
+            console.log(`Token successfully refreshed for credentialId: ${credentialId}`);
+        } catch (refreshError) {
+            console.error(`Error refreshing access token for credentialId: ${credentialId}, rolling back.`, refreshError);
+            throw new Error("Failed to refresh access token. Please reconnect your account.");
+        }
+    }
+
+    return oauth2Client;
 }
 
 
@@ -112,21 +108,20 @@ const runCampaignFlow = ai.defineFlow(
     const {credentialId, comments, videoIds} = input;
     
     const dbClient = await getClient();
-    let campaignId: number;
-
     try {
         await dbClient.query('BEGIN');
         
+        const oauth2Client = await getAuthenticatedClient(dbClient, userId, credentialId);
+        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
         const campaignRes = await dbClient.query(
             `INSERT INTO campaigns ("userId", "credentialId", comments, "videoIds")
              VALUES ($1, $2, $3, $4) RETURNING id`,
             [userId, credentialId, comments, videoIds]
         );
-        campaignId = campaignRes.rows[0].id;
+        const campaignId = campaignRes.rows[0].id;
 
         const results: CampaignOutput['results'] = [];
-        const oauth2Client = await getAuthenticatedClient(userId, credentialId);
-        const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
         const campaignStartTime = Date.now();
 
         for (const videoId of videoIds) {
@@ -163,11 +158,12 @@ const runCampaignFlow = ai.defineFlow(
             });
 
           } catch (error: any) {
-             console.error(`Failed to post comment to video ${videoId}:`, error.message);
+             const errorMessage = error.errors?.[0]?.message || error.message;
+             console.error(`Failed to post comment to video ${videoId}:`, errorMessage);
              // Do not roll back the entire transaction for a single comment failure.
              // Instead, we can decide to log this failure somewhere or handle it gracefully.
              // For now, we will throw, which will cause a rollback. This could be changed.
-             throw new Error(`Failed to post comment to video ${videoId}. Reason: ${error.errors?.[0]?.message || error.message}. Please check your account permissions and API quota.`);
+             throw new Error(`Failed to post comment to video ${videoId}. Reason: ${errorMessage}. Please check your account permissions and API quota.`);
           }
         }
         
@@ -183,3 +179,5 @@ const runCampaignFlow = ai.defineFlow(
     }
   }
 );
+
+    

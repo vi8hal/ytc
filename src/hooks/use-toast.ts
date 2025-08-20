@@ -8,8 +8,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 3
+const TOAST_REMOVE_DELAY = 10 * 1000 // 10 seconds
 
 type ToasterToast = ToastProps & {
   id: string
@@ -161,6 +161,7 @@ function toast({ ...props }: Toast) {
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
+      duration: props.variant === 'destructive' ? Infinity : props.duration
     },
   })
 
@@ -192,3 +193,5 @@ function useToast() {
 }
 
 export { useToast, toast }
+
+    
