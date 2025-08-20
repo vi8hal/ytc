@@ -104,7 +104,10 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
-                    <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
+                    <div className="flex gap-2">
+                        <Input id="googleRedirectUri" name="googleRedirectUri" placeholder="http://localhost:3000/api/auth/callback/google" defaultValue={credentialSet?.googleRedirectUri ?? ''} required />
+                        <Button type="submit" className={credentialSet ? 'hidden' : ''}><PlusCircle/> Add Credentials</Button>
+                    </div>
                 </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -358,6 +361,8 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
+
+    
 
     
 
