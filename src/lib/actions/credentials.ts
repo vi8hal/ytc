@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { getUserIdFromSession } from "@/lib/utils/auth-helpers";
 import { getClient } from "@/lib/db";
 import { CredentialSetSchema } from '@/lib/schemas';
+import { revalidatePath } from 'next/cache';
 
 export type CredentialSet = {
     id: number;
@@ -27,6 +28,7 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
     const rawData = Object.fromEntries(formData.entries());
     const id = rawData.id ? Number(rawData.id) : undefined;
     
+    // Client secret is only required for new entries, not for updates.
     const SaveCredentialSetSchema = CredentialSetSchema.refine(data => id || (data.googleClientSecret && data.googleClientSecret.length > 0), {
         message: 'Google Client Secret is required for new credentials.',
         path: ['googleClientSecret']
@@ -57,12 +59,13 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
         }
 
         if (id) {
-            const ownerCheck = await client.query('SELECT "googleClientSecret" FROM user_credentials WHERE id = $1 AND "userId" = $2', [id, userId]);
+            const ownerCheck = await client.query('SELECT "googleClientSecret" FROM user_credentials WHERE id = $1 AND "userId" = $2 FOR UPDATE', [id, userId]);
             if(ownerCheck.rowCount === 0) {
                  await client.query('ROLLBACK');
                  return { success: false, message: 'Permission denied.' };
             }
             
+            // If the incoming secret is empty/undefined, use the existing one from the DB.
             const finalSecret = (googleClientSecret && googleClientSecret.length > 0) ? googleClientSecret : ownerCheck.rows[0].googleClientSecret;
 
             await client.query(
@@ -89,6 +92,7 @@ export async function saveCredentialSetAction(prevState: any, formData: FormData
         }
         
         await client.query('COMMIT');
+        revalidatePath('/dashboard'); // Revalidate the path to ensure fresh data is fetched
         return { success: true, message: 'Credential set saved successfully.' };
 
     } catch (error: any) {
@@ -146,6 +150,7 @@ export async function deleteCredentialSetAction(id: number) {
         }
         
         await client.query('COMMIT');
+        revalidatePath('/dashboard');
         return { success: true, message: 'Credential set deleted successfully.' };
 
     } catch (error) {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useActionState, Suspense } from 'react';
+import { useState, useEffect, useCallback, useActionState, Suspense, useRef } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { PlusCircle, Loader2, Save, AlertCircle, CheckCircle, Youtube, Trash2, Pencil, Info, XCircle, User } from 'lucide-react';
@@ -45,13 +45,21 @@ function DeleteButton() {
 }
 
 function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => void, credentialSet?: CredentialSet | null, onClear: () => void }) {
+    const formRef = useRef<HTMLFormElement>(null);
     const [state, formAction] = useActionState(saveCredentialSetAction, { success: false, message: null });
     const { toast } = useToast();
     
     useEffect(() => {
         if(state?.message) {
             if (state.success) {
+                toast({
+                    title: 'Success',
+                    description: state.message,
+                });
                 onSave();
+                if (!credentialSet) { // If it was a new entry, clear the form.
+                    formRef.current?.reset();
+                }
             } else {
                  toast({
                     title: 'Save Failed',
@@ -60,11 +68,26 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 });
             }
         }
-    }, [state, onSave, toast]);
+    }, [state, onSave, toast, credentialSet]);
+
+    // When the credentialSet prop changes, it means we are editing a new one or clearing the form
+    useEffect(() => {
+        if (formRef.current) {
+            if (!credentialSet) {
+                formRef.current.reset();
+            }
+        }
+    }, [credentialSet]);
+
 
     return (
-        <form action={formAction} id="credentialSetForm" className="space-y-4 rounded-lg border bg-background/50 p-4" key={credentialSet?.id ?? 'new'}>
-            <h3 className="text-lg font-semibold leading-none tracking-tight">{credentialSet ? 'Edit' : 'Add New'} Credential Set</h3>
+        <form ref={formRef} action={formAction} id="credentialSetForm" className="space-y-4 rounded-lg border bg-background/50 p-4" key={credentialSet?.id ?? 'new'}>
+            <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold leading-none tracking-tight">{credentialSet ? 'Edit' : 'Add New'} Credential Set</h3>
+                {credentialSet && (
+                     <Button variant="ghost" onClick={onClear} type="button" className="h-auto p-1 text-xs"><XCircle className="mr-1"/>New Set</Button>
+                )}
+            </div>
              {state?.message && !state.success && (
                 <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
@@ -88,7 +111,7 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="googleClientSecret">Google Client Secret</Label>
-                    <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep unchanged)' : 'GOCSPX-...'} />
+                    <Input id="googleClientSecret" name="googleClientSecret" type="password" placeholder={credentialSet?.id ? '(leave blank to keep current)' : 'GOCSPX-...'} />
                 </div>
                  <div className="space-y-2">
                     <Label htmlFor="googleRedirectUri">Google Authorized Redirect URI</Label>
@@ -96,9 +119,6 @@ function CredentialSetForm({ onSave, credentialSet, onClear }: { onSave: () => v
                 </div>
             </div>
             <div className="flex justify-end gap-2">
-                {credentialSet && (
-                    <Button variant="outline" onClick={onClear} type="button"><XCircle className="mr-2"/>Clear Form</Button>
-                )}
                 <SaveButton isEditing={!!credentialSet} />
             </div>
         </form>
@@ -134,6 +154,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                 title: 'Connection Failed',
                 description: decodeURIComponent(message),
                 variant: 'destructive',
+                duration: Infinity,
             });
             // No need to call fetchCredentials() here, let selection handle it
         }
@@ -164,12 +185,8 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
     
     const handleFormSave = useCallback(() => {
         setEditingSet(null);
-        toast({
-            title: 'Success',
-            description: 'Credential set saved successfully.',
-        });
         fetchCredentials();
-    }, [fetchCredentials, toast]);
+    }, [fetchCredentials]);
 
     const handleDelete = async (id: number) => {
         const result = await deleteCredentialSetAction(id);
@@ -226,6 +243,8 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                  <Accordion type="single" collapsible className="w-full" value={selectedCredentialSet?.id.toString()} onValueChange={(value) => {
                         const newSet = credentialSets.find(s => s.id.toString() === value) || null;
                         onCredentialSelect(newSet);
+                        // Do not automatically populate the form for editing when selecting
+                        // setEditingSet(newSet);
                     }}>
                         {credentialSets.map(set => (
                              <AccordionItem value={set.id.toString()} key={set.id}>
