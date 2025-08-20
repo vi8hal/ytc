@@ -248,21 +248,23 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                         // setEditingSet(newSet);
                     }}>
                         {credentialSets.map(set => (
-                             <AccordionItem value={set.id.toString()} key={set.id}>
-                                <AccordionTrigger>
-                                    <div className="flex items-center gap-3 flex-1">
-                                        <span>{set.credentialName}</span>
-                                        {set.isConnected ? (
-                                            <Badge variant="default" className="bg-green-600/20 text-green-700 border-green-600/30 hover:bg-green-600/30"><CheckCircle className="h-3 w-3 mr-1" /> Connected</Badge>
-                                        ) : (
-                                            <Badge variant="destructive" className="bg-amber-600/10 text-amber-700 border-amber-600/20 hover:bg-amber-600/20"><AlertCircle className="h-3 w-3 mr-1" /> Not Connected</Badge>
-                                        )}
-                                    </div>
-                                     <div className="flex items-center gap-2 mr-2">
+                            <AccordionItem value={set.id.toString()} key={set.id}>
+                                <div className="flex items-center w-full">
+                                    <AccordionTrigger className="flex-1">
+                                        <div className="flex items-center gap-3">
+                                            <span>{set.credentialName}</span>
+                                            {set.isConnected ? (
+                                                <Badge variant="default" className="bg-green-600/20 text-green-700 border-green-600/30 hover:bg-green-600/30"><CheckCircle className="h-3 w-3 mr-1" /> Connected</Badge>
+                                            ) : (
+                                                <Badge variant="destructive" className="bg-amber-600/10 text-amber-700 border-amber-600/20 hover:bg-amber-600/20"><AlertCircle className="h-3 w-3 mr-1" /> Not Connected</Badge>
+                                            )}
+                                        </div>
+                                    </AccordionTrigger>
+                                    <div className="flex items-center gap-2 pr-4">
                                         <Button variant="ghost" size="icon" className="h-7 w-7" title="Edit" onClick={(e) => { e.stopPropagation(); setEditingSet(set); }}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
-                                         <AlertDialog>
+                                        <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" title="Delete" onClick={(e) => e.stopPropagation()}>
                                                     <Trash2 className="h-4 w-4" />
@@ -284,7 +286,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
                                             </AlertDialogContent>
                                         </AlertDialog>
                                     </div>
-                                </AccordionTrigger>
+                                </div>
                                 <AccordionContent>
                                     <div className="space-y-4 rounded-lg border bg-background/50 p-4">
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -339,7 +341,7 @@ function CredentialManagerInternal({ initialCredentialSets, selectedCredentialSe
     return (
         <Card className="shadow-lg">
             <CardHeader>
-                <CardTitle className="font-headline text-xl">Step 1: Manage & Select Credentials</CardTitle>
+                <CardTitle className="font-headline text-xl">Step 1: Manage &amp; Select Credentials</CardTitle>
                 <CardDescription>Add or edit your API credentials below, then select a set to use for this campaign.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -370,3 +372,5 @@ export function CredentialManager(props: CredentialManagerProps) {
         </Suspense>
     )
 }
+
+    
