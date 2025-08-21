@@ -52,12 +52,7 @@ export default function DashboardLayout({
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur sm:justify-end">
-            <div className="sm:hidden">
-              <SidebarTrigger>
-                <PanelLeft />
-              </SidebarTrigger>
-            </div>
+          <header className="sticky top-0 z-10 flex h-16 items-center justify-end border-b bg-background/80 px-4 backdrop-blur">
             {/* Header can be customized per page */}
           </header>
           <Suspense>
