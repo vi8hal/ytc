@@ -47,7 +47,7 @@ const AnimatedConstellation = () => {
             
             // Particle color from theme
             const particleColor = 'hsl(var(--primary))'; 
-            const lineColor = 'hsla(var(--primary), 0.2)';
+            const lineColor = 'hsla(var(--primary), 0.5)';
 
             particles.forEach(p => {
                 p.x += p.vx;
