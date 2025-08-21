@@ -53,9 +53,7 @@ export default function DashboardLayout({
         </Sidebar>
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
-            <h1 className="text-xl font-semibold">
-                Comment DCX1
-            </h1>
+            <Logo />
             <div>
               {/* Header actions can go here */}
             </div>
