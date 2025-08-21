@@ -57,9 +57,9 @@ const AnimatedConstellation = () => {
             // Draw the Sun
             const sunRadius = 40;
             const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunRadius * 2);
-            gradient.addColorStop(0, `hsla(${primaryColorValue}, 0.8)`);
-            gradient.addColorStop(0.4, `hsla(${primaryColorValue}, 0.4)`);
-            gradient.addColorStop(1, `hsla(${primaryColorValue}, 0)`);
+            gradient.addColorStop(0, `hsla(${primaryColorValue.replace(/\s/g, ', ')}, 0.8)`);
+            gradient.addColorStop(0.4, `hsla(${primaryColorValue.replace(/\s/g, ', ')}, 0.4)`);
+            gradient.addColorStop(1, `hsla(${primaryColorValue.replace(/\s/g, ', ')}, 0)`);
 
             ctx.beginPath();
             ctx.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
