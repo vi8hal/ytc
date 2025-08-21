@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'ChronoComment',
+  title: 'DCX1',
   description: 'Shuffle and schedule your YouTube comments intelligently.',
 };
 

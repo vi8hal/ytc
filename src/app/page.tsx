@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
@@ -34,7 +33,7 @@ export default function LandingPage() {
             Revolutionize Your YouTube Engagement
           </h1>
           <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
-            ChronoComment uses AI to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
+            DCX1 uses AI to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
           </p>
           <div className="mt-10 flex justify-center gap-4">
             <Button size="lg" asChild>
@@ -52,7 +51,7 @@ export default function LandingPage() {
         <section id="features" className="bg-muted/50 py-20 lg:py-24">
             <div className="container">
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why ChronoComment?</h2>
+                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why DCX1?</h2>
                     <p className="mt-4 max-w-2xl mx-auto text-muted-foreground md:text-lg">
                     Unlock powerful features to automate and optimize your comment strategy.
                     </p>
@@ -124,7 +123,7 @@ export default function LandingPage() {
             </p>
           </div>
           <p className="text-center text-sm text-muted-foreground md:text-left">
-            © {new Date().getFullYear()} ChronoComment. All rights reserved.
+            © {new Date().getFullYear()} DCX1. All rights reserved.
           </p>
         </div>
       </footer>

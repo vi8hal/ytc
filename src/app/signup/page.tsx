@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useActionState, useState, useEffect } from 'react';
@@ -55,7 +54,7 @@ export default function SignUpPage() {
             <Logo />
           </div>
           <CardTitle className="font-headline text-2xl">Create an Account</CardTitle>
-          <CardDescription>Join ChronoComment to supercharge your YouTube presence.</CardDescription>
+          <CardDescription>Join DCX1 to supercharge your YouTube presence.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {state?.error && (

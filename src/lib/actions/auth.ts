@@ -1,4 +1,3 @@
-
 'use server';
 
 import { redirect } from 'next/navigation';
@@ -59,9 +58,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
                 await sendVerificationEmail(
                     email, 
                     otp,
-                    'Your ChronoComment Verification Code',
+                    'Your DCX1 Verification Code',
                     `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-                        <h2>Welcome Back to ChronoComment!</h2>
+                        <h2>Welcome Back to DCX1!</h2>
                         <p>Your new one-time verification code is:</p>
                         <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
                         <p style="color: #666;">This code will expire in 10 minutes.</p>
@@ -86,9 +85,9 @@ export async function signUpAction(prevState: any, formData: FormData) {
         await sendVerificationEmail(
             email, 
             otp,
-            'Your ChronoComment Verification Code',
+            'Your DCX1 Verification Code',
             `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-                <h2>Welcome to ChronoComment!</h2>
+                <h2>Welcome to DCX1!</h2>
                 <p>Your one-time verification code is:</p>
                 <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
                 <p style="color: #666;">This code will expire in 10 minutes.</p>
@@ -134,7 +133,7 @@ export async function signInAction(prevState: any, formData: FormData) {
        await sendVerificationEmail(
           email, 
           otp, 
-          'Your ChronoComment Verification Code',
+          'Your DCX1 Verification Code',
           `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
             <h2>Complete Your Sign-In</h2>
             <p>Your one-time verification code is:</p>
@@ -263,7 +262,7 @@ export async function resendOtpAction(email: string): Promise<{error?: string | 
         await sendVerificationEmail(
             email,
             otp,
-            'Your New ChronoComment Verification Code',
+            'Your New DCX1 Verification Code',
             `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
                 <h2>Here is Your New Code</h2>
                 <p>Your new one-time verification code is:</p>
@@ -292,5 +291,3 @@ export async function logOutAction() {
     
     redirect('/signin');
 }
-
-    

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { redirect } from 'next/navigation';
@@ -35,7 +34,7 @@ export async function forgotPasswordAction(prevState: any, formData: FormData) {
             await sendVerificationEmail(
                 email, 
                 otp,
-                'Your ChronoComment Password Reset Code',
+                'Your DCX1 Password Reset Code',
                 `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
                     <h2>Password Reset Request</h2>
                     <p>Your one-time password reset code is:</p>
