@@ -10,18 +10,8 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const HexAnimation: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [primaryColor, setPrimaryColor] = useState('hsl(48, 100%, 50%)'); // Default bright yellow
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const computedStyle = getComputedStyle(document.documentElement);
-            const primaryColorValue = computedStyle.getPropertyValue('--primary').trim();
-             // HSL format in CSS is `H S% L%`, we need to convert it to `H, S%, L%` for canvas
-            if (primaryColorValue) {
-                setPrimaryColor(`hsl(${primaryColorValue.replace(/ /g, ', ')})`);
-            }
-        }
-        
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -53,7 +43,7 @@ const HexAnimation: React.FC = () => {
             mouse.y = canvas.height / 2;
         });
 
-        const drawHex = (x: number, y: number, opacity: number) => {
+        const drawHex = (x: number, y: number, distance: number) => {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i;
@@ -66,15 +56,25 @@ const HexAnimation: React.FC = () => {
                 }
             }
             ctx.closePath();
+
+            const maxDist = Math.min(canvas.width, canvas.height) / 2;
+            const opacity = Math.max(0.1, 1 - distance / maxDist);
+            
+            // Draw the stroke (outline)
             ctx.strokeStyle = `rgba(255, 223, 0, ${opacity * 0.7})`;
             ctx.lineWidth = 1;
             ctx.stroke();
-            
-            const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize);
-            gradient.addColorStop(0, `rgba(255, 223, 0, ${opacity * 0.2})`);
-            gradient.addColorStop(1, `rgba(255, 223, 0, 0)`);
-            ctx.fillStyle = gradient;
-            ctx.fill();
+
+            // Fill hexagons near the mouse
+            const fillRadius = 150; // The radius around the mouse to fill hexagons
+            if (distance < fillRadius) {
+                 const fillOpacity = 1 - (distance / fillRadius);
+                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize);
+                 gradient.addColorStop(0, `rgba(255, 223, 0, ${fillOpacity * 0.5})`);
+                 gradient.addColorStop(1, `rgba(255, 223, 0, 0)`);
+                 ctx.fillStyle = gradient;
+                 ctx.fill();
+            }
         };
 
         const animate = () => {
@@ -92,10 +92,7 @@ const HexAnimation: React.FC = () => {
                     const dy = yOffset - mouse.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    const maxDist = Math.min(canvas.width, canvas.height) / 2;
-                    const opacity = Math.max(0.1, 1 - distance / maxDist);
-                    
-                    drawHex(xOffset, yOffset, opacity);
+                    drawHex(xOffset, yOffset, distance);
                 }
             }
             
@@ -108,7 +105,7 @@ const HexAnimation: React.FC = () => {
             window.removeEventListener('resize', resizeCanvas);
             cancelAnimationFrame(animationFrameId);
         };
-    }, [primaryColor]);
+    }, []);
 
     return <canvas ref={canvasRef} className="absolute inset-0 z-0 h-full w-full" />;
 }
