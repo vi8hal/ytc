@@ -79,12 +79,12 @@ const HexAnimation: React.FC = () => {
                 x,
                 y,
                 radius: 0,
-                speed: Math.random() * 0.5 + 0.3,
+                speed: Math.random() * 0.4 + 0.2, // Randomized speed for more organic feel
                 maxRadius: Math.max(canvas.width, canvas.height)
             });
         };
 
-        const waveInterval = setInterval(createWave, 2000);
+        const waveInterval = setInterval(createWave, 2500); // Slightly longer interval
 
 
         const drawHex = (x: number, y: number, mouseDistance: number) => {
@@ -106,8 +106,9 @@ const HexAnimation: React.FC = () => {
                 const dx = x - wave.x;
                 const dy = y - wave.y;
                 const waveDistance = Math.sqrt(dx * dx + dy * dy);
-                if (waveDistance < wave.radius && waveDistance > wave.radius - 50) {
-                    totalWaveInfluence += (1 - (wave.radius - waveDistance) / 50) * 0.3;
+                const waveWidth = 60; // The width of the ripple
+                if (waveDistance < wave.radius && waveDistance > wave.radius - waveWidth) {
+                    totalWaveInfluence += (1 - (wave.radius - waveDistance) / waveWidth) * 0.25;
                 }
             });
 
@@ -115,15 +116,15 @@ const HexAnimation: React.FC = () => {
             const maxDist = Math.min(canvas.width, canvas.height) / 2;
             const opacity = Math.max(0.1, 1 - mouseDistance / maxDist) + totalWaveInfluence;
             
-            ctx.strokeStyle = `rgba(255, 223, 0, ${opacity * 0.7})`;
+            ctx.strokeStyle = `rgba(255, 223, 0, ${opacity * 0.6})`; // Slightly more subtle stroke
             ctx.lineWidth = 1;
             ctx.stroke();
 
             const fillRadius = 150;
             if (mouseDistance < fillRadius) {
                  const fillOpacity = 1 - (mouseDistance / fillRadius);
-                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize);
-                 gradient.addColorStop(0, `rgba(255, 223, 0, ${fillOpacity * 0.5})`);
+                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize * 0.8);
+                 gradient.addColorStop(0, `rgba(255, 223, 0, ${fillOpacity * 0.6})`);
                  gradient.addColorStop(1, `rgba(255, 223, 0, 0)`);
                  ctx.fillStyle = gradient;
                  ctx.fill();
@@ -142,8 +143,11 @@ const HexAnimation: React.FC = () => {
                 const startX = mouseRef.current.x;
                 const startY = mouseRef.current.y;
 
-                const newX = startX + (center.x - startX) * progress;
-                const newY = startY + (center.y - startY) * progress;
+                // Ease-out interpolation
+                const easeOutProgress = 1 - Math.pow(1 - progress, 3);
+
+                const newX = startX + (center.x - startX) * easeOutProgress;
+                const newY = startY + (center.y - startY) * easeOutProgress;
 
                 mouseRef.current.x = newX;
                 mouseRef.current.y = newY;
