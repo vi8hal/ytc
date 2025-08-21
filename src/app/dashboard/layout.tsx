@@ -2,16 +2,14 @@ import Link from "next/link";
 import {
   SidebarProvider,
   Sidebar,
-  SidebarHeader,
   SidebarContent,
   SidebarInset,
-  SidebarTrigger,
   SidebarFooter,
 } from "@/components/ui/sidebar"
 import { Logo } from "@/components/logo"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { LogOut, PanelLeft } from "lucide-react"
+import { LogOut } from "lucide-react"
 import { logOutAction } from "@/lib/actions/auth";
 import { Suspense } from "react";
 
@@ -24,9 +22,6 @@ export default function DashboardLayout({
     <SidebarProvider>
       <div className="flex min-h-screen">
         <Sidebar>
-          <SidebarHeader className="flex h-16 items-center justify-center border-b px-4">
-            <Logo />
-          </SidebarHeader>
           <SidebarContent>
             {/* Sidebar menu has been removed as requested */}
           </SidebarContent>
