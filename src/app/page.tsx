@@ -10,19 +10,18 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const AnimatedSupernova = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [primaryColor, setPrimaryColor] = useState('283, 100%, 60%'); // Default HSL value with commas
-    const mouse = useRef({ x: 9999, y: 9999 });
+    // Client-side state to ensure no hydration mismatch
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        // This code now runs only on the client, after the component has mounted.
-        // This prevents hydration errors by ensuring server and client render match initially.
-        if (typeof window !== 'undefined') {
-            const computedStyle = getComputedStyle(document.documentElement);
-            // Get the HSL values and replace spaces with commas for canvas compatibility
-            const primaryValue = computedStyle.getPropertyValue('--primary').trim().replace(/ /g, ', ');
-            setPrimaryColor(primaryValue);
-        }
-        
+        // This ensures the animation code only runs on the client after the component has mounted
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        // Don't run animation logic until the component is mounted
+        if (!isMounted) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -30,6 +29,11 @@ const AnimatedSupernova = () => {
 
         let animationFrameId: number;
         let particles: any[] = [];
+        const mouse = { x: 9999, y: 9999 };
+
+        // Get the primary color from CSS variables correctly
+        const computedStyle = getComputedStyle(document.documentElement);
+        const primaryColorValue = computedStyle.getPropertyValue('--primary').trim().replace(/ /g, ', ');
 
         const resizeCanvas = () => {
             canvas.width = window.innerWidth;
@@ -39,12 +43,12 @@ const AnimatedSupernova = () => {
         };
 
         const handleMouseMove = (event: MouseEvent) => {
-            mouse.current.x = event.clientX;
-            mouse.current.y = event.clientY;
+            mouse.x = event.clientX;
+            mouse.y = event.clientY;
         };
         const handleMouseLeave = () => {
-            mouse.current.x = 9999;
-            mouse.current.y = 9999;
+            mouse.x = 9999;
+            mouse.y = 9999;
         }
 
         class Particle {
@@ -90,7 +94,7 @@ const AnimatedSupernova = () => {
                 const y = Math.random() * canvas.height;
                 const speedX = (Math.random() - 0.5) * 0.5;
                 const speedY = (Math.random() - 0.5) * 0.5;
-                const color = `hsl(${primaryColor}, ${Math.random() * 30 + 70}%)`;
+                const color = `hsl(${primaryColorValue}, ${Math.random() * 30 + 70}%)`;
                 particles.push(new Particle(x, y, size, speedX, speedY, color));
             }
         };
@@ -103,9 +107,9 @@ const AnimatedSupernova = () => {
             const centerY = canvas.height / 2;
             const sunRadius = Math.min(canvas.width, canvas.height) / 10;
             const gradient = ctx!.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunRadius);
-            gradient.addColorStop(0, `hsla(${primaryColor}, 0.5)`);
-            gradient.addColorStop(0.5, `hsla(${primaryColor}, 0.2)`);
-            gradient.addColorStop(1, `hsla(${primaryColor}, 0)`);
+            gradient.addColorStop(0, `hsla(${primaryColorValue}, 0.5)`);
+            gradient.addColorStop(0.5, `hsla(${primaryColorValue}, 0.2)`);
+            gradient.addColorStop(1, `hsla(${primaryColorValue}, 0)`);
             ctx!.fillStyle = gradient;
             ctx!.beginPath();
             ctx!.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
@@ -119,16 +123,16 @@ const AnimatedSupernova = () => {
 
             // Draw connections to mouse
             const connectRadius = 200;
-            ctx!.strokeStyle = `hsla(${primaryColor}, 0.5)`;
+            ctx!.strokeStyle = `hsla(${primaryColorValue}, 0.5)`;
             ctx!.lineWidth = 0.3;
             for (let i = 0; i < particles.length; i++) {
-                const dx = mouse.current.x - particles[i].x;
-                const dy = mouse.current.y - particles[i].y;
+                const dx = mouse.x - particles[i].x;
+                const dy = mouse.y - particles[i].y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance < connectRadius) {
                     ctx!.beginPath();
                     ctx!.moveTo(particles[i].x, particles[i].y);
-                    ctx!.lineTo(mouse.current.x, mouse.current.y);
+                    ctx!.lineTo(mouse.x, mouse.y);
                     ctx!.stroke();
                 }
             }
@@ -149,7 +153,7 @@ const AnimatedSupernova = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, [primaryColor]);
+    }, [isMounted]); // Rerun the effect when isMounted becomes true
 
     return <canvas ref={canvasRef} className="absolute inset-0 -z-10 w-full h-full" />;
 };
@@ -251,7 +255,7 @@ export default function LandingPage() {
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
                                     <ShieldCheck className="h-7 w-7 text-primary" />
-                                d</div>
+                                </div>
                             </div>
                             <CardTitle className="text-center font-headline text-xl">Secure & Private</CardTitle>
                         </CardHeader>
