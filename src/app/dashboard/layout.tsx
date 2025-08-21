@@ -24,7 +24,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <div className="flex min-h-screen">
         <Sidebar>
-          <SidebarHeader>
+          <SidebarHeader className="flex h-16 items-center border-b px-4">
             <Logo />
           </SidebarHeader>
           <SidebarContent>
