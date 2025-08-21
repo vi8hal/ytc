@@ -14,7 +14,7 @@ const AnimatedSupernova = () => {
     const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        // This ensures the animation code only runs on the client after the component has mounted
+        // This ensures the component is mounted on the client before running animation code
         setIsMounted(true);
     }, []);
 
@@ -33,6 +33,7 @@ const AnimatedSupernova = () => {
 
         // Get the primary color from CSS variables correctly
         const computedStyle = getComputedStyle(document.documentElement);
+        // The value comes in the format "283 100% 60%", we need commas.
         const primaryColorValue = computedStyle.getPropertyValue('--primary').trim().replace(/ /g, ', ');
 
         const resizeCanvas = () => {
@@ -94,6 +95,7 @@ const AnimatedSupernova = () => {
                 const y = Math.random() * canvas.height;
                 const speedX = (Math.random() - 0.5) * 0.5;
                 const speedY = (Math.random() - 0.5) * 0.5;
+                // Use the correctly formatted color value
                 const color = `hsl(${primaryColorValue}, ${Math.random() * 30 + 70}%)`;
                 particles.push(new Particle(x, y, size, speedX, speedY, color));
             }
@@ -107,6 +109,7 @@ const AnimatedSupernova = () => {
             const centerY = canvas.height / 2;
             const sunRadius = Math.min(canvas.width, canvas.height) / 10;
             const gradient = ctx!.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunRadius);
+            // Use the correctly formatted color value for the gradient
             gradient.addColorStop(0, `hsla(${primaryColorValue}, 0.5)`);
             gradient.addColorStop(0.5, `hsla(${primaryColorValue}, 0.2)`);
             gradient.addColorStop(1, `hsla(${primaryColorValue}, 0)`);
@@ -284,5 +287,3 @@ export default function LandingPage() {
     </div>
   )
 }
-
-    
