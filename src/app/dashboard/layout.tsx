@@ -22,12 +22,7 @@ export default function DashboardLayout({
     <SidebarProvider>
       <div className="flex min-h-screen">
         <Sidebar>
-          <SidebarContent>
-            {/* Sidebar menu has been removed as requested */}
-          </SidebarContent>
-          <SidebarFooter>
-            {/* User info and logout moved to header */}
-          </SidebarFooter>
+          {/* All sidebar content has been removed as per user requests for a minimal sidebar. */}
         </Sidebar>
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
