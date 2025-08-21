@@ -10,7 +10,7 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const AnimatedSupernova = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [primaryColor, setPrimaryColor] = useState('283 100% 60%'); // Default HSL value
+    const [primaryColor, setPrimaryColor] = useState('283, 100%, 60%'); // Default HSL value with commas
     const mouse = useRef({ x: 9999, y: 9999 });
 
     useEffect(() => {
@@ -18,7 +18,8 @@ const AnimatedSupernova = () => {
         // This prevents hydration errors by ensuring server and client render match initially.
         if (typeof window !== 'undefined') {
             const computedStyle = getComputedStyle(document.documentElement);
-            const primaryValue = computedStyle.getPropertyValue('--primary').trim();
+            // Get the HSL values and replace spaces with commas for canvas compatibility
+            const primaryValue = computedStyle.getPropertyValue('--primary').trim().replace(/ /g, ', ');
             setPrimaryColor(primaryValue);
         }
         
@@ -250,7 +251,7 @@ export default function LandingPage() {
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
                                     <ShieldCheck className="h-7 w-7 text-primary" />
-                                </div>
+                                d</div>
                             </div>
                             <CardTitle className="text-center font-headline text-xl">Secure & Private</CardTitle>
                         </CardHeader>
