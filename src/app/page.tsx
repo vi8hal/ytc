@@ -1,118 +1,9 @@
 
-'use client';
-
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
 import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react';
-
-// A client-side component to render the animated background
-const AnimatedConstellation = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let animationFrameId: number;
-        
-        const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
-        };
-
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        const particles: { x: number; y: number; vx: number; vy: number; radius: number }[] = [];
-        const particleCount = 80;
-
-        for (let i = 0; i < particleCount; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                vx: Math.random() * 0.4 - 0.2, // Slow velocity
-                vy: Math.random() * 0.4 - 0.2,
-                radius: Math.random() * 1.5 + 0.5,
-            });
-        }
-
-        const draw = () => {
-            if(!ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            
-            // Get computed color values from CSS variables
-            const computedStyle = getComputedStyle(canvas);
-            const primaryColorValue = computedStyle.getPropertyValue('--primary').trim();
-            const particleColor = `hsl(${primaryColorValue})`; 
-            const lineColor = `hsla(${primaryColorValue}, 0.8)`;
-
-            // Draw the Sun
-            const sunRadius = 40;
-            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunRadius * 2);
-            gradient.addColorStop(0, `hsla(${primaryColorValue.replace(/\s/g, ', ')}, 0.8)`);
-            gradient.addColorStop(0.4, `hsla(${primaryColorValue.replace(/\s/g, ', ')}, 0.4)`);
-            gradient.addColorStop(1, `hsla(${primaryColorValue.replace(/\s/g, ', ')}, 0)`);
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-
-
-            particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-
-                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = particleColor;
-                ctx.fill();
-            });
-
-            ctx.beginPath();
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if (dist < 120) {
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                    }
-                }
-            }
-            ctx.strokeStyle = lineColor;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-
-            animationFrameId = requestAnimationFrame(draw);
-        };
-
-        draw();
-
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('resize', resizeCanvas);
-        };
-    }, []);
-
-    return (
-        <canvas
-            ref={canvasRef}
-            className="absolute inset-0 -z-10 h-full w-full opacity-100"
-        />
-    );
-};
-
 
 export default function LandingPage() {
   return (
@@ -143,7 +34,6 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32">
-          <AnimatedConstellation />
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
             Revolutionize Your YouTube Engagement
           </h1>
