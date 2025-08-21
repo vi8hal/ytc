@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['Fauna One', 'serif'],
+        headline: ['Cinzel', 'serif'],
         code: ['Source Code Pro', 'monospace'],
       },
       colors: {
