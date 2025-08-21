@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 import { logOutAction } from "@/lib/actions/auth";
 import { Suspense } from "react";
+import { getCurrentUser } from "@/lib/actions/user";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const user = await getCurrentUser();
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
@@ -18,13 +21,12 @@ export default function DashboardLayout({
             <div className="flex items-center gap-3 rounded-md p-2 transition-colors">
             <Avatar className="h-9 w-9">
                 <AvatarImage src="https://placehold.co/40x40.png" alt="User" data-ai-hint="profile avatar" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{user?.name?.charAt(0) ?? 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden text-right">
-                {/* Note: In a real app, you would fetch user data and display it here */}
-                <p className="truncate text-sm font-semibold">User</p>
+                <p className="truncate text-sm font-semibold">{user?.name ?? 'User'}</p>
                 <p className="truncate text-xs text-muted-foreground">
-                user@example.com
+                {user?.email ?? 'user@example.com'}
                 </p>
             </div>
             <form action={logOutAction}>
