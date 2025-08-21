@@ -48,16 +48,18 @@ const AnimatedConstellation = () => {
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             
-            // Particle color from theme
-            const particleColor = 'hsl(var(--primary))'; 
-            const lineColor = 'hsla(var(--primary), 0.8)'; // Made lines brighter
+            // Get computed color values from CSS variables
+            const computedStyle = getComputedStyle(canvas);
+            const primaryColorValue = computedStyle.getPropertyValue('--primary').trim();
+            const particleColor = `hsl(${primaryColorValue})`; 
+            const lineColor = `hsla(${primaryColorValue}, 0.8)`;
 
             // Draw the Sun
             const sunRadius = 40;
             const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunRadius * 2);
-            gradient.addColorStop(0, 'hsla(var(--primary), 0.8)');
-            gradient.addColorStop(0.4, 'hsla(var(--primary), 0.4)');
-            gradient.addColorStop(1, 'hsla(var(--primary), 0)');
+            gradient.addColorStop(0, `hsla(${primaryColorValue}, 0.8)`);
+            gradient.addColorStop(0.4, `hsla(${primaryColorValue}, 0.4)`);
+            gradient.addColorStop(1, `hsla(${primaryColorValue}, 0)`);
 
             ctx.beginPath();
             ctx.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
@@ -106,7 +108,7 @@ const AnimatedConstellation = () => {
     return (
         <canvas
             ref={canvasRef}
-            className="absolute inset-0 -z-10 h-full w-full opacity-100" // Increased opacity
+            className="absolute inset-0 -z-10 h-full w-full opacity-100"
         />
     );
 };
