@@ -1,166 +1,9 @@
-
-'use client';
-
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
 import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone } from 'lucide-react'
 import Link from 'next/link'
-import React, { useRef, useEffect, useState } from 'react';
-
-const AnimatedSupernova = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    // Client-side state to ensure no hydration mismatch
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        // This ensures the component is mounted on the client before running animation code
-        setIsMounted(true);
-    }, []);
-
-    useEffect(() => {
-        // Don't run animation logic until the component is mounted
-        if (!isMounted) return;
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        let animationFrameId: number;
-        let particles: any[] = [];
-        const mouse = { x: 9999, y: 9999 };
-
-        // Get the primary color from CSS variables correctly
-        const computedStyle = getComputedStyle(document.documentElement);
-        // The value comes in the format "283 100% 60%", we need commas.
-        const primaryColorValue = computedStyle.getPropertyValue('--primary').trim().replace(/ /g, ', ');
-
-        const resizeCanvas = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            particles = []; // Reset particles on resize
-            initParticles();
-        };
-
-        const handleMouseMove = (event: MouseEvent) => {
-            mouse.x = event.clientX;
-            mouse.y = event.clientY;
-        };
-        const handleMouseLeave = () => {
-            mouse.x = 9999;
-            mouse.y = 9999;
-        }
-
-        class Particle {
-            x: number;
-            y: number;
-            size: number;
-            speedX: number;
-            speedY: number;
-            color: string;
-            
-            constructor(x: number, y: number, size: number, speedX: number, speedY: number, color: string) {
-                this.x = x;
-                this.y = y;
-                this.size = size;
-                this.speedX = speedX;
-                this.speedY = speedY;
-                this.color = color;
-            }
-
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-
-                if (this.size > 0.2) this.size -= 0.01;
-
-                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
-            }
-
-            draw() {
-                ctx!.fillStyle = this.color;
-                ctx!.beginPath();
-                ctx!.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx!.fill();
-            }
-        }
-
-        const initParticles = () => {
-            const numberOfParticles = Math.floor(canvas.width / 5);
-            for (let i = 0; i < numberOfParticles; i++) {
-                const size = Math.random() * 1.5 + 0.5;
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                const speedX = (Math.random() - 0.5) * 0.5;
-                const speedY = (Math.random() - 0.5) * 0.5;
-                // Use the correctly formatted color value
-                const color = `hsl(${primaryColorValue}, ${Math.random() * 30 + 70}%)`;
-                particles.push(new Particle(x, y, size, speedX, speedY, color));
-            }
-        };
-
-        const animate = () => {
-            ctx!.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw Supernova
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const sunRadius = Math.min(canvas.width, canvas.height) / 10;
-            const gradient = ctx!.createRadialGradient(centerX, centerY, 0, centerX, centerY, sunRadius);
-            // Use the correctly formatted color value for the gradient
-            gradient.addColorStop(0, `hsla(${primaryColorValue}, 0.5)`);
-            gradient.addColorStop(0.5, `hsla(${primaryColorValue}, 0.2)`);
-            gradient.addColorStop(1, `hsla(${primaryColorValue}, 0)`);
-            ctx!.fillStyle = gradient;
-            ctx!.beginPath();
-            ctx!.arc(centerX, centerY, sunRadius, 0, Math.PI * 2);
-            ctx!.fill();
-
-
-            for (let i = 0; i < particles.length; i++) {
-                particles[i].update();
-                particles[i].draw();
-            }
-
-            // Draw connections to mouse
-            const connectRadius = 200;
-            ctx!.strokeStyle = `hsla(${primaryColorValue}, 0.5)`;
-            ctx!.lineWidth = 0.3;
-            for (let i = 0; i < particles.length; i++) {
-                const dx = mouse.x - particles[i].x;
-                const dy = mouse.y - particles[i].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < connectRadius) {
-                    ctx!.beginPath();
-                    ctx!.moveTo(particles[i].x, particles[i].y);
-                    ctx!.lineTo(mouse.x, mouse.y);
-                    ctx!.stroke();
-                }
-            }
-
-            animationFrameId = requestAnimationFrame(animate);
-        };
-        
-        resizeCanvas();
-        animate();
-
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('mouseleave', handleMouseLeave);
-
-        return () => {
-            cancelAnimationFrame(animationFrameId);
-            window.removeEventListener('resize', resizeCanvas);
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseleave', handleMouseLeave);
-        };
-    }, [isMounted]); // Rerun the effect when isMounted becomes true
-
-    return <canvas ref={canvasRef} className="absolute inset-0 -z-10 w-full h-full" />;
-};
-
+import React from 'react';
 
 export default function LandingPage() {
   return (
@@ -190,8 +33,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32 overflow-hidden">
-          <AnimatedSupernova />
+        <section className="container pt-20 pb-24 text-center md:pt-32 md:pb-32">
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
             Revolutionize Your YouTube Engagement
           </h1>
