@@ -12,6 +12,7 @@ const HexAnimation: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mouseRef = useRef<{ x: number; y: number; isReturning?: boolean; returnStartTime?: number }>({ x: 0, y: 0 });
     const animationFrameId = useRef<number>();
+    const wavesRef = useRef<{x: number, y: number, radius: number, speed: number, maxRadius: number}[]>([]);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -38,24 +39,55 @@ const HexAnimation: React.FC = () => {
         const hexSize = 30;
         const hexWidth = Math.sqrt(3) * hexSize;
         const hexHeight = 2 * hexSize;
-        const returnDuration = 4 * 60 * 1000; // 4 minutes in milliseconds
+        const returnDuration = 4 * 60 * 1000; 
 
         canvas.addEventListener('mousemove', (e) => {
-            if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
             mouseRef.current.isReturning = false;
             const rect = canvas.getBoundingClientRect();
             mouseRef.current.x = e.clientX - rect.left;
             mouseRef.current.y = e.clientY - rect.top;
-            animate();
         });
         
         canvas.addEventListener('mouseleave', () => {
             mouseRef.current.isReturning = true;
             mouseRef.current.returnStartTime = performance.now();
-            animate();
         });
 
-        const drawHex = (x: number, y: number, distance: number) => {
+        const createWave = () => {
+            if (wavesRef.current.length > 5) return; // Limit number of active waves
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            switch(side) {
+                case 0: // top
+                    x = Math.random() * canvas.width;
+                    y = 0;
+                    break;
+                case 1: // right
+                    x = canvas.width;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // bottom
+                    x = Math.random() * canvas.width;
+                    y = canvas.height;
+                    break;
+                default: // left
+                    x = 0;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+            wavesRef.current.push({
+                x,
+                y,
+                radius: 0,
+                speed: Math.random() * 0.5 + 0.3,
+                maxRadius: Math.max(canvas.width, canvas.height)
+            });
+        };
+
+        const waveInterval = setInterval(createWave, 2000);
+
+
+        const drawHex = (x: number, y: number, mouseDistance: number) => {
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i;
@@ -69,18 +101,27 @@ const HexAnimation: React.FC = () => {
             }
             ctx.closePath();
 
+            let totalWaveInfluence = 0;
+            wavesRef.current.forEach(wave => {
+                const dx = x - wave.x;
+                const dy = y - wave.y;
+                const waveDistance = Math.sqrt(dx * dx + dy * dy);
+                if (waveDistance < wave.radius && waveDistance > wave.radius - 50) {
+                    totalWaveInfluence += (1 - (wave.radius - waveDistance) / 50) * 0.3;
+                }
+            });
+
+
             const maxDist = Math.min(canvas.width, canvas.height) / 2;
-            const opacity = Math.max(0.1, 1 - distance / maxDist);
+            const opacity = Math.max(0.1, 1 - mouseDistance / maxDist) + totalWaveInfluence;
             
-            // Draw the stroke (outline)
             ctx.strokeStyle = `rgba(255, 223, 0, ${opacity * 0.7})`;
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Fill hexagons near the mouse
             const fillRadius = 150;
-            if (distance < fillRadius) {
-                 const fillOpacity = 1 - (distance / fillRadius);
+            if (mouseDistance < fillRadius) {
+                 const fillOpacity = 1 - (mouseDistance / fillRadius);
                  const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize);
                  gradient.addColorStop(0, `rgba(255, 223, 0, ${fillOpacity * 0.5})`);
                  gradient.addColorStop(1, `rgba(255, 223, 0, 0)`);
@@ -90,6 +131,7 @@ const HexAnimation: React.FC = () => {
         };
 
         const animate = () => {
+            animationFrameId.current = requestAnimationFrame(animate);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             if (mouseRef.current.isReturning) {
@@ -111,6 +153,13 @@ const HexAnimation: React.FC = () => {
                 }
             }
 
+            // Update and draw waves
+            wavesRef.current = wavesRef.current.filter(wave => wave.radius < wave.maxRadius);
+            wavesRef.current.forEach(wave => {
+                wave.radius += wave.speed;
+            });
+
+
             const cols = Math.ceil(canvas.width / hexWidth);
             const rows = Math.ceil(canvas.height / (hexHeight * 0.75));
 
@@ -126,16 +175,13 @@ const HexAnimation: React.FC = () => {
                     drawHex(xOffset, yOffset, distance);
                 }
             }
-            
-            if (mouseRef.current.isReturning) {
-                animationFrameId.current = requestAnimationFrame(animate);
-            }
         };
 
         animate();
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
+            clearInterval(waveInterval);
             if (animationFrameId.current) {
               cancelAnimationFrame(animationFrameId.current);
             }
@@ -277,5 +323,5 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
-  )
+   );
 }
