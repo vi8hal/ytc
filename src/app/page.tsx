@@ -36,12 +36,6 @@ export default function LandingPage() {
             DCX1 uses AI to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
           </p>
           <div className="mt-10 flex justify-center gap-4">
-            <Button size="lg" asChild>
-              <Link href="/signup">
-                Get Started for Free
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
             <Button size="lg" variant="outline" asChild>
               <Link href="#features">Learn More</Link>
             </Button>
