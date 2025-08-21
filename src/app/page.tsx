@@ -10,6 +10,8 @@ import React, { useRef, useEffect, useState } from 'react';
 
 const HexAnimation: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const mouseRef = useRef<{ x: number; y: number; isReturning?: boolean; returnStartTime?: number }>({ x: 0, y: 0 });
+    const animationFrameId = useRef<number>();
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -17,11 +19,17 @@ const HexAnimation: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let animationFrameId: number;
+        let center = { x: 0, y: 0 };
 
         const resizeCanvas = () => {
             canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
+            center.x = canvas.width / 2;
+            center.y = canvas.height / 2;
+            if (!mouseRef.current.isReturning) {
+                mouseRef.current.x = center.x;
+                mouseRef.current.y = center.y;
+            }
         };
 
         window.addEventListener('resize', resizeCanvas);
@@ -30,17 +38,21 @@ const HexAnimation: React.FC = () => {
         const hexSize = 30;
         const hexWidth = Math.sqrt(3) * hexSize;
         const hexHeight = 2 * hexSize;
-        let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+        const returnDuration = 4 * 60 * 1000; // 4 minutes in milliseconds
 
         canvas.addEventListener('mousemove', (e) => {
+            if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+            mouseRef.current.isReturning = false;
             const rect = canvas.getBoundingClientRect();
-            mouse.x = e.clientX - rect.left;
-            mouse.y = e.clientY - rect.top;
+            mouseRef.current.x = e.clientX - rect.left;
+            mouseRef.current.y = e.clientY - rect.top;
+            animate();
         });
         
         canvas.addEventListener('mouseleave', () => {
-            mouse.x = canvas.width / 2;
-            mouse.y = canvas.height / 2;
+            mouseRef.current.isReturning = true;
+            mouseRef.current.returnStartTime = performance.now();
+            animate();
         });
 
         const drawHex = (x: number, y: number, distance: number) => {
@@ -66,7 +78,7 @@ const HexAnimation: React.FC = () => {
             ctx.stroke();
 
             // Fill hexagons near the mouse
-            const fillRadius = 150; // The radius around the mouse to fill hexagons
+            const fillRadius = 150;
             if (distance < fillRadius) {
                  const fillOpacity = 1 - (distance / fillRadius);
                  const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize);
@@ -80,6 +92,25 @@ const HexAnimation: React.FC = () => {
         const animate = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            if (mouseRef.current.isReturning) {
+                const now = performance.now();
+                const elapsed = now - (mouseRef.current.returnStartTime || now);
+                const progress = Math.min(elapsed / returnDuration, 1);
+                
+                const startX = mouseRef.current.x;
+                const startY = mouseRef.current.y;
+
+                const newX = startX + (center.x - startX) * progress;
+                const newY = startY + (center.y - startY) * progress;
+
+                mouseRef.current.x = newX;
+                mouseRef.current.y = newY;
+
+                if (progress >= 1) {
+                    mouseRef.current.isReturning = false;
+                }
+            }
+
             const cols = Math.ceil(canvas.width / hexWidth);
             const rows = Math.ceil(canvas.height / (hexHeight * 0.75));
 
@@ -88,22 +119,26 @@ const HexAnimation: React.FC = () => {
                     const xOffset = col * hexWidth + (row % 2 === 1 ? hexWidth / 2 : 0);
                     const yOffset = row * hexHeight * 0.75;
                     
-                    const dx = xOffset - mouse.x;
-                    const dy = yOffset - mouse.y;
+                    const dx = xOffset - mouseRef.current.x;
+                    const dy = yOffset - mouseRef.current.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
                     drawHex(xOffset, yOffset, distance);
                 }
             }
             
-            animationFrameId = requestAnimationFrame(animate);
+            if (mouseRef.current.isReturning) {
+                animationFrameId.current = requestAnimationFrame(animate);
+            }
         };
 
         animate();
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            cancelAnimationFrame(animationFrameId);
+            if (animationFrameId.current) {
+              cancelAnimationFrame(animationFrameId.current);
+            }
         };
     }, []);
 
