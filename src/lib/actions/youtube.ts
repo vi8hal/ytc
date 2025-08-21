@@ -31,6 +31,8 @@ export async function searchChannels(apiKey: string, query: string) {
       throw error;
     }
     console.error("[YOUTUBE_SEARCH_ERROR]", error.errors || error.message);
+    // Return an empty array on failure to prevent crashes on the client side.
+    // The component will handle displaying the error message thrown from here.
     throw new Error('Failed to search for channels. Please check your API key and permissions.');
   }
 }
