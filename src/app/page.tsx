@@ -1,11 +1,126 @@
+
+'use client'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
 import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone } from 'lucide-react'
 import Link from 'next/link'
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+
+const HexAnimation: React.FC = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [primaryColor, setPrimaryColor] = useState('hsl(48, 100%, 50%)'); // Default bright yellow
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const computedStyle = getComputedStyle(document.documentElement);
+            const primaryColorValue = computedStyle.getPropertyValue('--primary').trim();
+             // HSL format in CSS is `H S% L%`, we need to convert it to `H, S%, L%` for canvas
+            if (primaryColorValue) {
+                setPrimaryColor(`hsl(${primaryColorValue.replace(/ /g, ', ')})`);
+            }
+        }
+        
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let animationFrameId: number;
+
+        const resizeCanvas = () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        };
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const hexSize = 30;
+        const hexWidth = Math.sqrt(3) * hexSize;
+        const hexHeight = 2 * hexSize;
+        let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            mouse.x = canvas.width / 2;
+            mouse.y = canvas.height / 2;
+        });
+
+        const drawHex = (x: number, y: number, opacity: number) => {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const pointX = x + hexSize * Math.cos(angle);
+                const pointY = y + hexSize * Math.sin(angle);
+                if (i === 0) {
+                    ctx.moveTo(pointX, pointY);
+                } else {
+                    ctx.lineTo(pointX, pointY);
+                }
+            }
+            ctx.closePath();
+            ctx.strokeStyle = `rgba(255, 223, 0, ${opacity * 0.7})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize);
+            gradient.addColorStop(0, `rgba(255, 223, 0, ${opacity * 0.2})`);
+            gradient.addColorStop(1, `rgba(255, 223, 0, 0)`);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        };
+
+        const animate = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const cols = Math.ceil(canvas.width / hexWidth);
+            const rows = Math.ceil(canvas.height / (hexHeight * 0.75));
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const xOffset = col * hexWidth + (row % 2 === 1 ? hexWidth / 2 : 0);
+                    const yOffset = row * hexHeight * 0.75;
+                    
+                    const dx = xOffset - mouse.x;
+                    const dy = yOffset - mouse.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    const maxDist = Math.min(canvas.width, canvas.height) / 2;
+                    const opacity = Math.max(0.1, 1 - distance / maxDist);
+                    
+                    drawHex(xOffset, yOffset, opacity);
+                }
+            }
+            
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animate();
+
+        return () => {
+            window.removeEventListener('resize', resizeCanvas);
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, [primaryColor]);
+
+    return <canvas ref={canvasRef} className="absolute inset-0 z-0 h-full w-full" />;
+}
+
 
 export default function LandingPage() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -33,18 +148,21 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="container pt-20 pb-24 text-center md:pt-32 md:pb-32">
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
-            Revolutionize Your YouTube Engagement
-          </h1>
-          <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
-            DCX1 uses AI to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
-          </p>
-          <div className="mt-10 flex justify-center gap-4">
-            <Button size="lg" variant="outline" asChild>
-              <Link href="#features">Learn More</Link>
-            </Button>
-          </div>
+        <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32 overflow-hidden">
+             {isMounted && <HexAnimation />}
+            <div className="relative z-10">
+                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
+                    Revolutionize Your YouTube Engagement
+                </h1>
+                <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
+                    DCX1 uses AI to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
+                </p>
+                <div className="mt-10 flex justify-center gap-4">
+                    <Button size="lg" variant="outline" asChild>
+                    <Link href="#features">Learn More</Link>
+                    </Button>
+                </div>
+            </div>
         </section>
 
         <section id="features" className="bg-muted/50 py-16 lg:py-20">
