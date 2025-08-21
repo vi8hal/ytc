@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
-import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle } from 'lucide-react'
+import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone } from 'lucide-react'
 import Link from 'next/link'
 
 export default function LandingPage() {
@@ -14,7 +14,11 @@ export default function LandingPage() {
               <Logo />
             </Link>
           </div>
-          <div className="flex flex-1 items-center justify-end space-x-2">
+          <div className="flex flex-1 items-center justify-end space-x-4">
+            <a href="tel:+918789217534" className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+                <Phone className="h-4 w-4" />
+                <span>+91 87892 17534</span>
+            </a>
             <Button variant="ghost" asChild>
               <Link href="/signin">Sign In</Link>
             </Button>
