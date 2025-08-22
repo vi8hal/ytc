@@ -278,7 +278,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
        <HexAnimation />
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/50 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/50 backdrop-blur-sm mt-2">
         <div className="container flex h-16 items-center">
           <div className="mr-4 flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -420,5 +420,3 @@ export default function LandingPage() {
     </div>
    );
 }
-
-    
