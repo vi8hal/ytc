@@ -11,36 +11,34 @@ const XerusLogo = ({ className }: { className?: string }) => (
       {`
         .xerus-tail {
           animation: tail-wag 3s ease-in-out infinite;
-          transform-origin: 50px 85px; 
+          transform-origin: 48px 75px; 
         }
         @keyframes tail-wag {
-          0%, 100% { transform: rotate(4deg); }
-          50% { transform: rotate(-4deg); }
+          0%, 100% { transform: rotate(2deg); }
+          50% { transform: rotate(-2deg); }
         }
       `}
     </style>
-    <g>
-      {/* Tail */}
-      <path className="xerus-tail" fill="#A0522D" d="M52,100 C75,95 90,75 90,50 C90,25 75,5 52,0 C47,20 47,75 52,100 Z" />
-      <path className="xerus-tail" fill="#CD853F" d="M54,95 C72,90 85,72 85,50 C85,28 72,10 54,5 C50,25 50,70 54,95 Z" />
+    <g transform="translate(-5, 5) scale(1.1)">
+        {/* Tail */}
+        <path className="xerus-tail" fill="#C67A48" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M48.2,75.5 C32,80,20,95,28,58 C35,25,40,25,48.2,27.5 C55,45,55,60,48.2,75.5 Z" />
 
-      {/* Body */}
-      <path fill="#D2B48C" d="M48,35 C38,40 32,55 34,75 C35,85 40,95 50,98 C52,85 54,50 48,35 Z" />
-      <path fill="#DEB887" d="M49,38 C40,42 36,55 38,72 C39,82 43,92 50,95 C51,82 53,52 49,38 Z" />
+        {/* Back Leg */}
+        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M60,94 C55,98,45,98,42,92 C40,85,45,80,55,80 C65,80,68,88,60,94 Z" />
+        <path fill="#F0D7C4" d="M60,94 C55,98,45,98,42,92" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* Head */}
-      <path fill="#D2B48C" d="M48,35 C58,25 68,28 73,35 C78,42 75,55 68,60 C60,65 52,60 48,50 C42,45 45,38 48,35 Z" />
 
-      {/* Ear */}
-      <path fill="#A0522D" d="M71,32 C75,30 78,32 78,36 C78,40 73,42 71,40 C69,38 69,34 71,32 Z" />
+        {/* Body */}
+        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M85,54 C93,45,92,30,82,25 C70,20,60,30,60,45 C60,65,65,80,55,80 C50,80,50,70,70,55 C75,50,82,50,85,54 Z"/>
+        {/* Underbelly */}
+        <path fill="#F0D7C4" d="M72,48 C70,60,68,75,57,78 C62,70,65,55,72,48 Z" />
+        {/* White Stripe */}
+        <path fill="white" stroke="white" strokeWidth="1" d="M63,45 C65,55,75,60,82,55" strokeLinecap="round"/>
 
-      {/* Eye */}
-      <circle cx="66" cy="45" r="3.5" fill="#2F2F2F" />
-      <circle cx="67" cy="44" r="1.2" fill="white" />
-
-      {/* Feet */}
-      <path fill="#A0522D" d="M50,98 C47,100 42,103 44,105 C47,107 52,105 52,102 C52,99 51,98 50,98 Z" />
-      <path fill="#A0522D" d="M40,93 C37,95 35,99 37,101 C39,103 42,101 42,98 C42,95 41,94 40,93 Z" />
+        {/* Head */}
+        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M82,25 C88,22,95,25,97,32 C99,38,95,45,88,48 C82,50,75,45,80,35 C82,30,82,25,82,25 Z"/>
+        <circle cx="90" cy="35" r="4" fill="#5C2D0C" />
+        <circle cx="91" cy="34" r="1.5" fill="white" />
     </g>
   </svg>
 );
