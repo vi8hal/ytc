@@ -14,14 +14,14 @@ const XerusLogo = ({ className }: { className?: string }) => (
           transform-origin: 48px 80px; 
         }
         @keyframes tail-wag {
-          0%, 100% { transform: rotate(8deg); }
-          50% { transform: rotate(-8deg); }
+          0%, 100% { transform: rotate(12deg); }
+          50% { transform: rotate(-12deg); }
         }
       `}
     </style>
     <g transform="translate(-5, 0) scale(1.1)">
-        {/* Taller Tail */}
-        <path className="xerus-tail" fill="#C67A48" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M48.2,80.5 C38,95,20,100,25,60 C30,25,45,35,48.2,25.5 C55,45,55,65,48.2,80.5 Z" />
+        {/* Taller Tail, twisted left */}
+        <path className="xerus-tail" fill="#C67A48" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M48.2,80.5 C35,98,15,95,25,60 C32,30,45,35,48.2,25.5 C55,45,55,65,48.2,80.5 Z" />
 
         {/* Back Leg */}
         <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M60,94 C55,98,45,98,42,92 C40,85,45,80,55,80 C65,80,68,88,60,94 Z" />
