@@ -27,13 +27,15 @@ const XerusLogo = ({ className }: { className?: string }) => (
         <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M60,94 C55,98,45,98,42,92 C40,85,45,80,55,80 C65,80,68,88,60,94 Z" />
         <path fill="#F0D7C4" d="M60,94 C55,98,45,98,42,92" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-
         {/* Body */}
-        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M85,54 C93,45,92,30,82,25 C70,20,60,30,58,45 C58,68,65,82,55,82 C50,82,50,70,70,55 C75,50,82,50,85,54 Z"/>
+        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M85,54 C93,45,92,30,82,25 C70,20,60,30,58,45 C56,60,60,75,55,82 C50,82,50,70,70,55 C75,50,82,50,85,54 Z"/>
         {/* Underbelly */}
         <path fill="#F0D7C4" d="M72,48 C70,63,66,78,57,80 C62,73,65,55,72,48 Z" />
         {/* White Stripe */}
         <path fill="white" stroke="white" strokeWidth="1" d="M61,45 C65,55,75,60,82,55" strokeLinecap="round"/>
+        
+        {/* Presenting Arm/Hand */}
+        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M70,60 C75,58,85,62,88,68"/>
 
         {/* Head */}
         <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M82,25 C88,22,95,25,97,32 C99,38,95,45,88,48 C82,50,75,45,80,35 C82,30,82,25,82,25 Z"/>
