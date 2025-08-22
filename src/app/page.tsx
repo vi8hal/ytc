@@ -13,6 +13,7 @@ const HexAnimation: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameId = useRef<number>();
     const [isMounted, setIsMounted] = useState(false);
+    const mousePos = useRef({ x: -1000, y: -1000 });
     
     // State for the glowing hexagons
     const glowingHexes = useRef<Set<string>>(new Set());
@@ -39,8 +40,16 @@ const HexAnimation: React.FC = () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         };
+        
+        const handleMouseMove = (event: MouseEvent) => {
+            if (canvas) {
+                const rect = canvas.getBoundingClientRect();
+                mousePos.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+            }
+        };
 
         window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('mousemove', handleMouseMove);
         resizeCanvas();
         
         const hexSize = 20;
@@ -162,6 +171,7 @@ const HexAnimation: React.FC = () => {
 
             const effectiveHexWidth = hexWidth + gap;
             const effectiveHexHeight = hexHeight * 0.75 + gap;
+            const hoverRadius = 50;
 
             const cols = Math.ceil(canvas.width / effectiveHexWidth) + 1;
             const rows = Math.ceil(canvas.height / effectiveHexHeight) + 1;
@@ -172,6 +182,19 @@ const HexAnimation: React.FC = () => {
                     const yOffset = row * effectiveHexHeight;
                     const key = `${col}-${row}`;
                     
+                    // Check for mouse hover
+                    const dx = mousePos.current.x - xOffset;
+                    const dy = mousePos.current.y - yOffset;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < hoverRadius && !glowingHexes.current.has(key) && !shrinkingHexes.current.has(key)) {
+                        glowingHexes.current.add(key);
+                        hexGlowData.current.set(key, {
+                           startTime: now,
+                           duration: 3000 // glow for 3 seconds
+                        });
+                    }
+
                     const isGlowing = glowingHexes.current.has(key);
                     const isShrinking = shrinkingHexes.current.has(key);
                     
@@ -207,6 +230,7 @@ const HexAnimation: React.FC = () => {
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
+            canvas.removeEventListener('mousemove', handleMouseMove);
             clearInterval(effectInterval);
             if (animationFrameId.current) {
               cancelAnimationFrame(animationFrameId.current);
@@ -394,5 +418,3 @@ export default function LandingPage() {
     </div>
    );
 }
-
-    
