@@ -96,7 +96,7 @@ const HexAnimation: React.FC = () => {
             }
             ctx.closePath();
 
-            if (isShrinking) {
+            if (isShrinking || shrinkingHexes.current.has(`${Math.round(x / ((Math.sqrt(3) * hexSize) + gap))}-${Math.round(y / ((2*hexSize*0.75)+gap))}`)) {
                 // Metallic golden brown fill
                 const metalGradient = ctx.createLinearGradient(x - currentSize, y - currentSize, x + currentSize, y + currentSize);
                 metalGradient.addColorStop(0, '#E1C16E'); // Light Gold
@@ -147,22 +147,18 @@ const HexAnimation: React.FC = () => {
             
             const now = performance.now();
 
-            // Update effects
-            const expiredHexes: string[] = [];
+            // Update effects - only remove expired glows, not shrinks
+            const expiredGlows: string[] = [];
             hexGlowData.current.forEach((data, key) => {
-                if (now > data.startTime + data.duration) expiredHexes.push(key);
-            });
-            hexShrinkData.current.forEach((data, key) => {
-                if (now > data.startTime + data.duration) expiredHexes.push(key);
+                if (now > data.startTime + data.duration) {
+                    expiredGlows.push(key);
+                }
             });
 
-            expiredHexes.forEach(key => {
+            expiredGlows.forEach(key => {
                 glowingHexes.current.delete(key);
                 hexGlowData.current.delete(key);
-                shrinkingHexes.current.delete(key);
-                hexShrinkData.current.delete(key);
             });
-
 
             const effectiveHexWidth = hexWidth + gap;
             const effectiveHexHeight = hexHeight * 0.75 + gap;
@@ -187,11 +183,22 @@ const HexAnimation: React.FC = () => {
                     
                     let shrinkProgress = 0;
                     if(isShrinking) {
-                        const data = hexShrinkData.current.get(key)!;
-                        shrinkProgress = (now - data.startTime) / data.duration;
+                        const data = hexShrinkData.current.get(key);
+                        if (data) {
+                           shrinkProgress = (now - data.startTime) / data.duration;
+                           if (shrinkProgress >= 1) {
+                               // Animation finished, but we keep it in the shrinkingHexes set.
+                               // We just stop calculating progress.
+                               shrinkProgress = 1;
+                               hexShrinkData.current.delete(key); // Remove data to stop re-calculating
+                           }
+                        } else {
+                           // Hexagon is in the set, but its animation data is gone, meaning it's finished.
+                           shrinkProgress = 1;
+                        }
                     }
 
-                    drawHex(xOffset, yOffset, isGlowing, glowProgress, isShrinking, shrinkProgress);
+                    drawHex(xOffset, yOffset, isGlowing, glowProgress, isShrinking || shrinkingHexes.current.has(key), shrinkProgress);
                 }
             }
         };
