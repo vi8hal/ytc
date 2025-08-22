@@ -21,7 +21,7 @@ const XerusLogo = ({ className }: { className?: string }) => (
     </style>
     <g transform="translate(-5, 5) scale(1.1)">
         {/* Tail */}
-        <path className="xerus-tail" fill="#C67A48" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M48.2,75.5 C32,80,20,95,28,58 C35,25,40,25,48.2,27.5 C55,45,55,60,48.2,75.5 Z" />
+        <path className="xerus-tail" fill="#C67A48" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M48.2,75.5 C40,85,25,90,28,60 C32,30,45,35,48.2,27.5 C55,45,55,60,48.2,75.5 Z" />
 
         {/* Back Leg */}
         <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M60,94 C55,98,45,98,42,92 C40,85,45,80,55,80 C65,80,68,88,60,94 Z" />
