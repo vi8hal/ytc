@@ -4,9 +4,10 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
-import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone } from 'lucide-react'
+import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone, Power } from 'lucide-react'
 import Link from 'next/link'
 import React, { useRef, useEffect, useState } from 'react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const HexAnimation: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -212,17 +213,30 @@ export default function LandingPage() {
               <Logo />
             </Link>
           </div>
-          <div className="flex flex-1 items-center justify-end space-x-4">
+          <div className="flex flex-1 items-center justify-end space-x-2">
             <a href="tel:+918789217534" className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
                 <Phone className="h-4 w-4" />
-                <span>+91 87892 17534</span>
+                <span className="hidden sm:inline">+91 87892 17534</span>
             </a>
-            <Button asChild>
-              <Link href="/signin">Sign In</Link>
-            </Button>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button asChild size="icon">
+                            <Link href="/signin">
+                                <Power className="h-4 w-4" />
+                                <span className="sr-only">Sign In</span>
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Sign In</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
             <Button asChild>
               <Link href="/signup">
-                Sign Up <ArrowRight className="ml-2 h-4 w-4" />
+                <span className="hidden sm:inline">Sign Up</span>
+                <ArrowRight className="sm:ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -256,7 +270,7 @@ export default function LandingPage() {
                     </p>
                 </div>
                 <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -269,7 +283,7 @@ export default function LandingPage() {
                             Easily find and select target YouTube channels and videos right within the app.
                         </CardContent>
                     </Card>
-                    <Card className="shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -282,7 +296,7 @@ export default function LandingPage() {
                             Our GenAI randomly sends one of your four prepared comments to multiple videos.
                         </CardContent>
                     </Card>
-                    <Card className="shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -295,7 +309,7 @@ export default function LandingPage() {
                             Comments are posted randomly within a 10-minute window to appear more natural.
                         </CardContent>
                     </Card>
-                    <Card className="shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
