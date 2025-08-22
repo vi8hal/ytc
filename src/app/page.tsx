@@ -18,6 +18,10 @@ const HexAnimation: React.FC = () => {
     const glowingHexes = useRef<Set<string>>(new Set());
     const hexGlowData = useRef<Map<string, { startTime: number, duration: number }>>(new Map());
 
+    // State for shrinking hexagons
+    const shrinkingHexes = useRef<Set<string>>(new Set());
+    const hexShrinkData = useRef<Map<string, { startTime: number, duration: number }>>(new Map());
+
 
     useEffect(() => {
         setIsMounted(true);
@@ -44,46 +48,92 @@ const HexAnimation: React.FC = () => {
         const hexWidth = Math.sqrt(3) * hexSize;
         const hexHeight = 2 * hexSize;
 
-        const pickNewGlowingHex = () => {
+        const pickNewEffectHex = () => {
             const cols = Math.ceil(canvas.width / (hexWidth + gap));
             const rows = Math.ceil(canvas.height / ((hexHeight * 0.75) + gap));
             const randomRow = Math.floor(Math.random() * rows);
             const randomCol = Math.floor(Math.random() * cols);
             const key = `${randomCol}-${randomRow}`;
 
-            if (glowingHexes.current.size < 15 && !glowingHexes.current.has(key)) {
-                glowingHexes.current.add(key);
-                hexGlowData.current.set(key, {
-                    startTime: performance.now(),
-                    duration: 2000 + Math.random() * 3000 // Glow for 2-5 seconds
-                });
+            // Decide which effect to apply
+            if (Math.random() > 0.4) { // More likely to be a glow
+                if (glowingHexes.current.size < 15 && !glowingHexes.current.has(key) && !shrinkingHexes.current.has(key)) {
+                    glowingHexes.current.add(key);
+                    hexGlowData.current.set(key, {
+                        startTime: performance.now(),
+                        duration: 2000 + Math.random() * 3000 // Glow for 2-5 seconds
+                    });
+                }
+            } else {
+                 if (shrinkingHexes.current.size < 8 && !shrinkingHexes.current.has(key) && !glowingHexes.current.has(key)) {
+                    shrinkingHexes.current.add(key);
+                    hexShrinkData.current.set(key, {
+                        startTime: performance.now(),
+                        duration: 1500 + Math.random() * 1500 // Shrink for 1.5-3 seconds
+                    });
+                }
             }
         };
 
-        const glowInterval = setInterval(pickNewGlowingHex, 200);
+        const effectInterval = setInterval(pickNewEffectHex, 200);
 
-        const drawHex = (x: number, y: number, isGlowing: boolean, glowProgress: number) => {
+        const drawHex = (x: number, y: number, isGlowing: boolean, glowProgress: number, isShrinking: boolean, shrinkProgress: number) => {
             ctx.save();
+            
+            let currentSize = hexSize;
+            if (isShrinking) {
+                // Animate size reduction: starts at full size, shrinks to half, then grows back
+                const shrinkFactor = Math.sin(shrinkProgress * Math.PI);
+                currentSize = hexSize - (hexSize / 2) * shrinkFactor;
+            }
+
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i;
-                const pointX = x + hexSize * Math.cos(angle);
-                const pointY = y + hexSize * Math.sin(angle);
+                const pointX = x + currentSize * Math.cos(angle);
+                const pointY = y + currentSize * Math.sin(angle);
                 ctx.lineTo(pointX, pointY);
             }
             ctx.closePath();
 
-            // Create a subtle 3D effect with a gradient
-            const gradient = ctx.createLinearGradient(x - hexSize, y - hexSize, x + hexSize, y + hexSize);
-            gradient.addColorStop(0, '#1C1C1C'); // Slightly lighter top-left
-            gradient.addColorStop(1, '#121212'); // Slightly darker bottom-right
+            if (isShrinking) {
+                // Metallic golden brown fill
+                const metalGradient = ctx.createLinearGradient(x - currentSize, y - currentSize, x + currentSize, y + currentSize);
+                metalGradient.addColorStop(0, '#E1C16E'); // Light Gold
+                metalGradient.addColorStop(0.5, '#B8860B'); // Dark Goldenrod
+                metalGradient.addColorStop(1, '#C19A6B'); // Camel
+                ctx.fillStyle = metalGradient;
+                ctx.fill();
 
-            ctx.fillStyle = gradient;
-            ctx.fill();
+                // Shining effect
+                const shineProgress = Math.sin(shrinkProgress * Math.PI * 2 + Math.PI / 2); // makes it peak in the middle
+                if (shineProgress > 0) {
+                    ctx.save();
+                    ctx.clip(); // Clip to the hex shape
+                    const shineGradient = ctx.createLinearGradient(x - currentSize, y - currentSize * 0.5, x + currentSize, y + currentSize * 0.5);
+                    shineGradient.addColorStop(0, `rgba(255, 255, 230, 0)`);
+                    shineGradient.addColorStop(0.45, `rgba(255, 255, 230, 0)`);
+                    shineGradient.addColorStop(0.5, `rgba(255, 255, 230, ${shineProgress * 0.7})`);
+                    shineGradient.addColorStop(0.55, `rgba(255, 255, 230, 0)`);
+                    shineGradient.addColorStop(1, `rgba(255, 255, 230, 0)`);
+                    ctx.fillStyle = shineGradient;
+                    ctx.fillRect(x - currentSize, y - currentSize, currentSize * 2, currentSize * 2);
+                    ctx.restore();
+                }
+                 ctx.strokeStyle = '#8B4513'; // SaddleBrown border
+                 ctx.lineWidth = 1;
 
-            // Add a very subtle inner shadow for more depth
-            ctx.strokeStyle = "rgba(0,0,0,0.3)";
-            ctx.lineWidth = 1;
+            } else {
+                 // Default dark 3D effect
+                const gradient = ctx.createLinearGradient(x - currentSize, y - currentSize, x + currentSize, y + currentSize);
+                gradient.addColorStop(0, '#1C1C1C'); // Slightly lighter top-left
+                gradient.addColorStop(1, '#121212'); // Slightly darker bottom-right
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                 ctx.strokeStyle = "rgba(0,0,0,0.3)";
+                 ctx.lineWidth = 1;
+            }
+            
             ctx.stroke();
 
             if (isGlowing) {
@@ -112,16 +162,20 @@ const HexAnimation: React.FC = () => {
             
             const now = performance.now();
 
-            // Update glowing hexes
+            // Update effects
             const expiredHexes: string[] = [];
             hexGlowData.current.forEach((data, key) => {
-                if (now > data.startTime + data.duration) {
-                    expiredHexes.push(key);
-                }
+                if (now > data.startTime + data.duration) expiredHexes.push(key);
             });
+            hexShrinkData.current.forEach((data, key) => {
+                if (now > data.startTime + data.duration) expiredHexes.push(key);
+            });
+
             expiredHexes.forEach(key => {
                 glowingHexes.current.delete(key);
                 hexGlowData.current.delete(key);
+                shrinkingHexes.current.delete(key);
+                hexShrinkData.current.delete(key);
             });
 
 
@@ -136,15 +190,23 @@ const HexAnimation: React.FC = () => {
                     const xOffset = col * effectiveHexWidth + (row % 2 === 1 ? effectiveHexWidth / 2 : 0);
                     const yOffset = row * effectiveHexHeight;
                     const key = `${col}-${row}`;
+                    
                     const isGlowing = glowingHexes.current.has(key);
+                    const isShrinking = shrinkingHexes.current.has(key);
                     
                     let glowProgress = 0;
                     if(isGlowing) {
                         const data = hexGlowData.current.get(key)!;
                         glowProgress = (now - data.startTime) / data.duration;
                     }
+                    
+                    let shrinkProgress = 0;
+                    if(isShrinking) {
+                        const data = hexShrinkData.current.get(key)!;
+                        shrinkProgress = (now - data.startTime) / data.duration;
+                    }
 
-                    drawHex(xOffset, yOffset, isGlowing, glowProgress);
+                    drawHex(xOffset, yOffset, isGlowing, glowProgress, isShrinking, shrinkProgress);
                 }
             }
         };
@@ -153,7 +215,7 @@ const HexAnimation: React.FC = () => {
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            clearInterval(glowInterval);
+            clearInterval(effectInterval);
             if (animationFrameId.current) {
               cancelAnimationFrame(animationFrameId.current);
             }
