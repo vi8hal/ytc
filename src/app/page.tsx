@@ -346,7 +346,7 @@ export default function LandingPage() {
                     Unlock powerful features to automate and optimize your comment strategy.
                     </p>
                 </div>
-                <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
                     <Card className="border-white/10 bg-card/50 shadow-lg transition-transform duration-300 hover:scale-105 hover:border-primary/30 hover:shadow-primary/10">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
