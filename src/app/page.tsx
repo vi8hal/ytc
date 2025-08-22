@@ -201,7 +201,7 @@ const HexAnimation: React.FC = () => {
 
     if (!isMounted) return null;
 
-    return <canvas ref={canvasRef} className="absolute inset-0 z-0 h-full w-full" />;
+    return <canvas ref={canvasRef} className="fixed inset-0 z-0 h-screen w-screen" />;
 }
 
 const TypewriterHeadline = () => {
@@ -280,9 +280,9 @@ export default function LandingPage() {
         </div>
       </header>
 
-      <main className="flex-1">
-        <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32 overflow-hidden">
-             <HexAnimation />
+      <main className="flex-1 relative">
+        <HexAnimation />
+        <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32">
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
@@ -296,7 +296,7 @@ export default function LandingPage() {
             </div>
         </section>
 
-        <section id="features" className="bg-muted/50 py-16 lg:py-20">
+        <section id="features" className="bg-background/80 backdrop-blur-sm relative z-10 py-16 lg:py-20">
             <div className="container">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why DCX1?</h2>
@@ -362,7 +362,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t bg-background">
+      <footer className="border-t bg-background/80 backdrop-blur-sm relative z-10">
         <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
           <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
             <Logo />
