@@ -230,7 +230,9 @@ const HexAnimation: React.FC = () => {
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            canvas.removeEventListener('mousemove', handleMouseMove);
+            if (canvas) {
+              canvas.removeEventListener('mousemove', handleMouseMove);
+            }
             clearInterval(effectInterval);
             if (animationFrameId.current) {
               cancelAnimationFrame(animationFrameId.current);
