@@ -14,10 +14,16 @@ const HexAnimation: React.FC = () => {
     const mouseRef = useRef<{ x: number; y: number; isReturning?: boolean; returnStartTime?: number }>({ x: 0, y: 0 });
     const animationFrameId = useRef<number>();
     const wavesRef = useRef<{x: number, y: number, radius: number, speed: number, maxRadius: number}[]>([]);
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
 
     useEffect(() => {
         const canvas = canvasRef.current;
-        if (!canvas) return;
+        if (!canvas || !isMounted) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
@@ -191,7 +197,9 @@ const HexAnimation: React.FC = () => {
               cancelAnimationFrame(animationFrameId.current);
             }
         };
-    }, []);
+    }, [isMounted]);
+
+    if (!isMounted) return null;
 
     return <canvas ref={canvasRef} className="absolute inset-0 z-0 h-full w-full" />;
 }
@@ -225,12 +233,6 @@ const TypewriterHeadline = () => {
 
 
 export default function LandingPage() {
-    const [isMounted, setIsMounted] = useState(false);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -280,7 +282,7 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32 overflow-hidden">
-             {isMounted && <HexAnimation />}
+             <HexAnimation />
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
