@@ -104,24 +104,9 @@ const HexAnimation: React.FC = () => {
                 metalGradient.addColorStop(1, '#C19A6B'); // Camel
                 ctx.fillStyle = metalGradient;
                 ctx.fill();
-
-                // Shining effect
-                const shineProgress = Math.sin(shrinkProgress * Math.PI * 2 + Math.PI / 2); // makes it peak in the middle
-                if (shineProgress > 0) {
-                    ctx.save();
-                    ctx.clip(); // Clip to the hex shape
-                    const shineGradient = ctx.createLinearGradient(x - currentSize, y - currentSize * 0.5, x + currentSize, y + currentSize * 0.5);
-                    shineGradient.addColorStop(0, `rgba(255, 255, 230, 0)`);
-                    shineGradient.addColorStop(0.45, `rgba(255, 255, 230, 0)`);
-                    shineGradient.addColorStop(0.5, `rgba(255, 255, 230, ${shineProgress * 0.7})`);
-                    shineGradient.addColorStop(0.55, `rgba(255, 255, 230, 0)`);
-                    shineGradient.addColorStop(1, `rgba(255, 255, 230, 0)`);
-                    ctx.fillStyle = shineGradient;
-                    ctx.fillRect(x - currentSize, y - currentSize, currentSize * 2, currentSize * 2);
-                    ctx.restore();
-                }
-                 ctx.strokeStyle = '#8B4513'; // SaddleBrown border
-                 ctx.lineWidth = 1;
+                
+                ctx.strokeStyle = '#8B4513'; // SaddleBrown border
+                ctx.lineWidth = 1;
 
             } else {
                  // Default dark 3D effect
