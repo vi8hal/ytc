@@ -7,7 +7,7 @@ const XerusLogo = ({ className }: { className?: string }) => (
     className={cn("h-8 w-8", className)}
     aria-hidden="true"
     // Set a base color for the logo, which can be overridden by className
-    style={{ color: '#A16E2E' }} 
+    style={{ color: '#B8860B' }} 
   >
     <style>
       {`
