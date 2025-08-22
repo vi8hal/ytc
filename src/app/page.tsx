@@ -278,7 +278,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
        <HexAnimation />
-      <header className="sticky top-0 z-50 w-auto mx-4 mt-2 border-b rounded-full border-white/10 bg-background/50 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 w-auto mx-4 mt-2 border rounded-full border-white/10 bg-background/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center">
           <div className="mr-4 flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -324,7 +324,7 @@ export default function LandingPage() {
 
       <main className="flex-1 relative">
        
-        <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32">
+        <section className="container relative pt-20 pb-20 text-center md:pt-28 md:pb-28">
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
@@ -338,7 +338,7 @@ export default function LandingPage() {
             </div>
         </section>
 
-        <section id="features" className="relative z-10 border-t border-b border-white/10 bg-background/50 py-16 backdrop-blur-md lg:py-20">
+        <section id="features" className="relative z-10 mx-4 rounded-lg border border-white/10 bg-background/50 py-16 backdrop-blur-md lg:py-20">
             <div className="container">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why DCX1?</h2>
@@ -404,7 +404,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t bg-background/80 backdrop-blur-sm relative z-10">
+      <footer className="border-t bg-background/80 backdrop-blur-sm relative z-10 mt-16">
         <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
           <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
             <Logo />
