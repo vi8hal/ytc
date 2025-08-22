@@ -39,18 +39,19 @@ const HexAnimation: React.FC = () => {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
         
-        const hexSize = 50;
+        const hexSize = 20;
+        const gap = 5;
         const hexWidth = Math.sqrt(3) * hexSize;
         const hexHeight = 2 * hexSize;
 
         const pickNewGlowingHex = () => {
-            const cols = Math.ceil(canvas.width / hexWidth);
-            const rows = Math.ceil(canvas.height / (hexHeight * 0.75));
+            const cols = Math.ceil(canvas.width / (hexWidth + gap));
+            const rows = Math.ceil(canvas.height / ((hexHeight * 0.75) + gap));
             const randomRow = Math.floor(Math.random() * rows);
             const randomCol = Math.floor(Math.random() * cols);
             const key = `${randomCol}-${randomRow}`;
 
-            if (glowingHexes.current.size < 5 && !glowingHexes.current.has(key)) {
+            if (glowingHexes.current.size < 15 && !glowingHexes.current.has(key)) {
                 glowingHexes.current.add(key);
                 hexGlowData.current.set(key, {
                     startTime: performance.now(),
@@ -59,7 +60,7 @@ const HexAnimation: React.FC = () => {
             }
         };
 
-        const glowInterval = setInterval(pickNewGlowingHex, 500);
+        const glowInterval = setInterval(pickNewGlowingHex, 200);
 
         const drawHex = (x: number, y: number, isGlowing: boolean, glowProgress: number) => {
             ctx.save();
@@ -74,11 +75,16 @@ const HexAnimation: React.FC = () => {
 
             // Create a subtle 3D effect with a gradient
             const gradient = ctx.createLinearGradient(x - hexSize, y - hexSize, x + hexSize, y + hexSize);
-            gradient.addColorStop(0, '#2a2a2a');
-            gradient.addColorStop(1, '#1a1a1a');
+            gradient.addColorStop(0, '#1C1C1C'); // Slightly lighter top-left
+            gradient.addColorStop(1, '#121212'); // Slightly darker bottom-right
 
             ctx.fillStyle = gradient;
             ctx.fill();
+
+            // Add a very subtle inner shadow for more depth
+            ctx.strokeStyle = "rgba(0,0,0,0.3)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
 
             if (isGlowing) {
                 const opacity = Math.sin(glowProgress * Math.PI); // Pulse effect
@@ -92,9 +98,9 @@ const HexAnimation: React.FC = () => {
                 colorStops.forEach(stop => glowGradient.addColorStop(stop.offset, stop.color));
 
                 ctx.strokeStyle = glowGradient;
-                ctx.lineWidth = 3;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = 'rgba(138, 43, 226, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = 'rgba(138, 43, 226, 0.5)';
                 ctx.stroke();
             }
             ctx.restore();
@@ -119,13 +125,16 @@ const HexAnimation: React.FC = () => {
             });
 
 
-            const cols = Math.ceil(canvas.width / hexWidth) + 1;
-            const rows = Math.ceil(canvas.height / (hexHeight * 0.75)) + 1;
+            const effectiveHexWidth = hexWidth + gap;
+            const effectiveHexHeight = hexHeight * 0.75 + gap;
+
+            const cols = Math.ceil(canvas.width / effectiveHexWidth) + 1;
+            const rows = Math.ceil(canvas.height / effectiveHexHeight) + 1;
 
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
-                    const xOffset = col * hexWidth + (row % 2 === 1 ? hexWidth / 2 : 0);
-                    const yOffset = row * hexHeight * 0.75;
+                    const xOffset = col * effectiveHexWidth + (row % 2 === 1 ? effectiveHexWidth / 2 : 0);
+                    const yOffset = row * effectiveHexHeight;
                     const key = `${col}-${row}`;
                     const isGlowing = glowingHexes.current.has(key);
                     
@@ -153,7 +162,7 @@ const HexAnimation: React.FC = () => {
 
     if (!isMounted) return null;
 
-    return <canvas ref={canvasRef} className="fixed inset-0 z-0 h-full w-full bg-[#111]" />;
+    return <canvas ref={canvasRef} className="fixed inset-0 z-0 h-full w-full bg-[#0A0A0A]" />;
 }
 
 const TypewriterHeadline = () => {
@@ -188,7 +197,8 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+       <HexAnimation />
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/50 backdrop-blur-sm">
         <div className="container flex h-16 items-center">
           <div className="mr-4 flex">
             <Link href="/" className="mr-6 flex items-center space-x-2">
@@ -233,7 +243,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1 relative">
-        <HexAnimation />
+       
         <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32">
             <div className="relative z-10">
                 <TypewriterHeadline />
