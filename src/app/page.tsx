@@ -99,13 +99,13 @@ const HexAnimation: React.FC = () => {
             if (isShrinking || shrinkingHexes.current.has(`${Math.round(x / ((Math.sqrt(3) * hexSize) + gap))}-${Math.round(y / ((2*hexSize*0.75)+gap))}`)) {
                 // Metallic golden brown fill
                 const metalGradient = ctx.createLinearGradient(x - currentSize, y - currentSize, x + currentSize, y + currentSize);
-                metalGradient.addColorStop(0, '#E1C16E'); // Light Gold
-                metalGradient.addColorStop(0.5, '#B8860B'); // Dark Goldenrod
-                metalGradient.addColorStop(1, '#C19A6B'); // Camel
+                metalGradient.addColorStop(0, '#B8860B'); // DarkGoldenrod
+                metalGradient.addColorStop(0.5, '#8B4513'); // SaddleBrown
+                metalGradient.addColorStop(1, '#98693E'); // Light Brown/Bronze
                 ctx.fillStyle = metalGradient;
                 ctx.fill();
                 
-                ctx.strokeStyle = '#8B4513'; // SaddleBrown border
+                ctx.strokeStyle = '#5C4033'; // Darker brown border
                 ctx.lineWidth = 1;
 
             } else {
@@ -394,3 +394,5 @@ export default function LandingPage() {
     </div>
    );
 }
+
+    
