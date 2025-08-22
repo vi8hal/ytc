@@ -217,7 +217,7 @@ export default function LandingPage() {
                 <Phone className="h-4 w-4" />
                 <span>+91 87892 17534</span>
             </a>
-            <Button variant="outline" asChild>
+            <Button asChild>
               <Link href="/signin">Sign In</Link>
             </Button>
             <Button asChild>
