@@ -1,0 +1,54 @@
+
+import { Logo } from "@/components/logo"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { LogOut, Shield } from "lucide-react"
+import { logOutAction } from "@/lib/actions/auth";
+import { Suspense } from "react";
+import { getCurrentUser } from "@/lib/actions/user";
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const user = await getCurrentUser();
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur">
+        <div className="flex items-center gap-2">
+            <Logo />
+            <div className="flex items-center gap-1 rounded-md border border-amber-500/50 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600">
+                <Shield className="h-3 w-3"/>
+                Admin
+            </div>
+        </div>
+        <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 rounded-md p-2 transition-colors">
+            <Avatar className="h-9 w-9">
+                <AvatarImage src="https://placehold.co/40x40.png" alt="Admin User" data-ai-hint="profile avatar" />
+                <AvatarFallback>{user?.name?.charAt(0) ?? 'A'}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 overflow-hidden text-right">
+                <p className="truncate text-sm font-semibold">{user?.name ?? 'Admin'}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                {user?.email ?? 'admin@example.com'}
+                </p>
+            </div>
+            <form action={logOutAction}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" type="submit" title="Log Out">
+                    <LogOut className="h-4 w-4" />
+                </Button>
+            </form>
+            </div>
+        </div>
+      </header>
+      <main className="flex-1">
+        <Suspense>
+            {children}
+        </Suspense>
+      </main>
+    </div>
+  )
+}

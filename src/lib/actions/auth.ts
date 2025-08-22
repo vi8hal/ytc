@@ -1,3 +1,4 @@
+
 'use server';
 
 import { redirect } from 'next/navigation';
@@ -41,6 +42,7 @@ export async function signUpAction(prevState: any, formData: FormData) {
     
     const { name, email, password } = validation.data;
     const client = await getClient();
+    const isAdmin = email === 'admin@example.com';
 
     try {
         await client.query('BEGIN');
@@ -76,8 +78,8 @@ export async function signUpAction(prevState: any, formData: FormData) {
         const hashedPassword = bcrypt.hashSync(password, 10);
         
         await client.query(
-            'INSERT INTO users (name, email, password, verified) VALUES ($1, $2, $3, $4)',
-            [name, email, hashedPassword, false]
+            'INSERT INTO users (name, email, password, verified, "isAdmin") VALUES ($1, $2, $3, $4, $5)',
+            [name, email, hashedPassword, false, isAdmin]
         );
 
         const otp = await generateAndSaveOtp(client, email);
@@ -118,10 +120,11 @@ export async function signInAction(prevState: any, formData: FormData) {
   const { email, password } = validation.data;
   const rememberMe = validation.data['remember-me'] === 'on';
   const client = await getClient();
+  let user;
 
   try {
     const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
-    const user = result.rows[0];
+    user = result.rows[0];
 
     if (!user || !user.password || !bcrypt.compareSync(password, user.password)) {
       return { error: 'Invalid email or password.' };
@@ -149,7 +152,7 @@ export async function signInAction(prevState: any, formData: FormData) {
     const oneDayInSeconds = 24 * 60 * 60;
     const expiresIn = rememberMe ? `${thirtyDaysInSeconds}s` : `${oneDayInSeconds}s`;
 
-    const sessionToken = await createSessionToken({ userId: user.id, email: user.email }, expiresIn);
+    const sessionToken = await createSessionToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin }, expiresIn);
     
     const cookieOptions: any = { 
         httpOnly: true, 
@@ -175,6 +178,9 @@ export async function signInAction(prevState: any, formData: FormData) {
       client.release();
   }
 
+  if (user.isAdmin) {
+      redirect('/admin/dashboard');
+  }
   redirect('/dashboard');
 }
 
@@ -191,13 +197,13 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     
     const { email, otp } = validation.data;
     const client = await getClient();
-
+    let user;
     try {
         await client.query('BEGIN');
 
         // Lock the row for update to prevent race conditions
         const result = await client.query('SELECT * FROM users WHERE email = $1 FOR UPDATE', [email]);
-        const user = result.rows[0];
+        user = result.rows[0];
 
         if (!user) {
             await client.query('ROLLBACK');
@@ -219,7 +225,7 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
             [user.email]
         );
 
-        const sessionToken = await createSessionToken({ userId: user.id, email: user.email });
+        const sessionToken = await createSessionToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
         cookies().set('session_token', sessionToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
         
         await client.query('COMMIT');
@@ -232,7 +238,10 @@ export async function verifyOtpAction(prevState: any, formData: FormData) {
     } finally {
         client.release();
     }
-
+    
+    if (user.isAdmin) {
+        redirect('/admin/dashboard');
+    }
     redirect('/dashboard');
 }
 

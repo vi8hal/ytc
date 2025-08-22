@@ -29,6 +29,7 @@ export async function initializeDb() {
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 verified BOOLEAN DEFAULT FALSE,
+                "isAdmin" BOOLEAN DEFAULT FALSE,
                 otp VARCHAR(10),
                 "otpExpires" TIMESTAMP
             );
@@ -77,6 +78,23 @@ export async function initializeDb() {
 
         // Drop the old user_settings table as it's replaced by user_credentials
         await client.query('DROP TABLE IF EXISTS user_settings;');
+        
+        // Add isAdmin column to users table if it doesn't exist
+        const hasIsAdminColumn = await client.query(`
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name='users' AND column_name='isAdmin'
+        `);
+        if (hasIsAdminColumn.rowCount === 0) {
+            await client.query('ALTER TABLE users ADD COLUMN "isAdmin" BOOLEAN DEFAULT FALSE;');
+        }
+        
+        // Set the default admin user
+        const adminEmail = 'admin@example.com';
+        const adminUserExists = await client.query('SELECT 1 FROM users WHERE email = $1', [adminEmail]);
+        if (adminUserExists.rowCount > 0) {
+            await client.query('UPDATE users SET "isAdmin" = TRUE WHERE email = $1', [adminEmail]);
+        }
+
 
         await client.query('COMMIT');
         console.log('Database tables initialized or already exist.');

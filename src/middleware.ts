@@ -2,52 +2,60 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifySessionToken } from './lib/auth';
+import type { JWTPayload } from 'jose';
 
 const PROTECTED_ROUTES = ['/dashboard'];
+const ADMIN_ROUTES = ['/admin'];
 const AUTH_ROUTES = ['/signin', '/signup', '/verify-otp', '/forgot-password', '/reset-password'];
+
+async function getSession(request: NextRequest): Promise<JWTPayload | null> {
+    const sessionToken = request.cookies.get('session_token')?.value;
+    if (!sessionToken) return null;
+
+    try {
+        return await verifySessionToken(sessionToken);
+    } catch (e) {
+        return null;
+    }
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionToken = request.cookies.get('session_token')?.value;
+  
+  const session = await getSession(request);
 
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+  const isAdminRoute = ADMIN_ROUTES.some(route => pathname.startsWith(route));
   const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
+  const isLandingPage = pathname === '/';
+
+  // --- Handle Admin Routes ---
+  if (isAdminRoute) {
+      if (!session || !session.isAdmin) {
+          return NextResponse.redirect(new URL('/signin', request.url));
+      }
+  }
 
   // --- Handle Protected Routes ---
   if (isProtectedRoute) {
-    if (!sessionToken) {
-      return NextResponse.redirect(new URL('/signin', request.url));
+    if (!session) {
+      const response = NextResponse.redirect(new URL('/signin', request.url));
+      response.cookies.delete('session_token');
+      return response;
     }
-    
-    try {
-      const payload = await verifySessionToken(sessionToken);
-      if (!payload) {
-          const response = NextResponse.redirect(new URL('/signin', request.url));
-          response.cookies.delete('session_token');
-          return response;
-      }
-    } catch(e) {
-       const response = NextResponse.redirect(new URL('/signin', request.url));
-       response.cookies.delete('session_token');
-       return response;
+    // Redirect admin away from regular user dashboard
+    if (session.isAdmin) {
+       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
   }
 
-  // --- Handle Authentication Routes ---
-  if (isAuthRoute) {
-    if (sessionToken) {
-        try {
-            const payload = await verifySessionToken(sessionToken);
-            if (payload) {
-                return NextResponse.redirect(new URL('/dashboard', request.url));
-            }
-        } catch (e) {
-            // Invalid session token is fine, let them proceed to the auth page.
-            // But clear the invalid cookie.
-             const response = NextResponse.next();
-             response.cookies.delete('session_token');
-             return response;
-        }
+  // --- Handle Authentication Routes & Landing Page ---
+  if (isAuthRoute || isLandingPage) {
+    if (session) {
+       if (session.isAdmin) {
+           return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+       }
+       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }
 

@@ -4,16 +4,21 @@ import { cookies } from 'next/headers';
 import nodemailer from 'nodemailer';
 import type { VercelPoolClient } from '@vercel/postgres';
 
-export async function getUserIdFromSession() {
+export async function getSessionPayload() {
     const sessionToken = cookies().get('session_token')?.value;
     if (!sessionToken) return null;
     try {
       const payload = await verifySessionToken(sessionToken);
-      return payload?.userId as number | null;
+      return payload as { userId: number, email: string, isAdmin: boolean } | null;
     } catch(e) {
       console.error("[SESSION_VERIFICATION_FAILED]", e);
       return null;
     }
+}
+
+export async function getUserIdFromSession() {
+    const payload = await getSessionPayload();
+    return payload?.userId ?? null;
 }
 
 export async function sendVerificationEmail(email: string, otp: string, subject: string, body: string) {
