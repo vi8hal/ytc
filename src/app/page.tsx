@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Logo } from '@/components/logo'
-import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone, Power } from 'lucide-react'
+import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone, Power, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import React, { useRef, useEffect, useState } from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -221,7 +221,7 @@ export default function LandingPage() {
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button asChild size="icon">
+                        <Button asChild variant="ghost" size="icon">
                             <Link href="/signin">
                                 <Power className="h-4 w-4" />
                                 <span className="sr-only">Sign In</span>
@@ -232,13 +232,20 @@ export default function LandingPage() {
                         <p>Sign In</p>
                     </TooltipContent>
                 </Tooltip>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button asChild size="icon">
+                            <Link href="/signup">
+                                <UserPlus className="h-4 w-4" />
+                                <span className="sr-only">Sign Up</span>
+                            </Link>
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Sign Up</p>
+                    </TooltipContent>
+                </Tooltip>
             </TooltipProvider>
-            <Button asChild>
-              <Link href="/signup">
-                <span className="hidden sm:inline">Sign Up</span>
-                <ArrowRight className="sm:ml-2 h-4 w-4" />
-              </Link>
-            </Button>
           </div>
         </div>
       </header>
