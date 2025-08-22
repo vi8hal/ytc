@@ -199,10 +199,29 @@ const HexAnimation: React.FC = () => {
 
 export default function LandingPage() {
     const [isMounted, setIsMounted] = useState(false);
+    const [headlineText, setHeadlineText] = useState('');
+    const fullHeadline = "Revolutionize Your YouTube Engagement";
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (isMounted) {
+            let i = 0;
+            setHeadlineText(''); // Reset on mount/remount
+            const typingInterval = setInterval(() => {
+                if (i < fullHeadline.length) {
+                    setHeadlineText(prev => prev + fullHeadline.charAt(i));
+                    i++;
+                } else {
+                    clearInterval(typingInterval);
+                }
+            }, 75); // Typing speed in milliseconds
+
+            return () => clearInterval(typingInterval);
+        }
+    }, [isMounted]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -254,8 +273,9 @@ export default function LandingPage() {
         <section className="container relative pt-20 pb-24 text-center md:pt-32 md:pb-32 overflow-hidden">
              {isMounted && <HexAnimation />}
             <div className="relative z-10">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline">
-                    Revolutionize Your YouTube Engagement
+                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl font-headline min-h-[1em]">
+                    {headlineText}
+                    <span className="animate-ping">|</span>
                 </h1>
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
                     Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
