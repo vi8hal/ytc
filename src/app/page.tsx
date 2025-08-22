@@ -237,7 +237,7 @@ export default function LandingPage() {
                     Revolutionize Your YouTube Engagement
                 </h1>
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
-                    DCX1 uses AI to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
+                    DCX1 uses AI agent to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
                 </p>
                 <div className="mt-10 flex justify-center gap-4">
                     <Button size="lg" variant="outline" asChild>
@@ -276,7 +276,7 @@ export default function LandingPage() {
                                     <BotMessageSquare className="h-7 w-7 text-primary" />
                                 </div>
                             </div>
-                            <CardTitle className="text-center font-headline text-xl">AI Comment Shuffling</CardTitle>
+                            <CardTitle className="text-center font-headline text-xl">AI Agent Comment Shuffling</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center text-muted-foreground">
                             Our GenAI randomly sends one of your four prepared comments to multiple videos.
