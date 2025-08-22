@@ -6,33 +6,38 @@ const XerusLogo = ({ className }: { className?: string }) => (
     viewBox="0 0 100 100"
     className={cn("h-8 w-8", className)}
     aria-hidden="true"
+    // Set a base color for the logo, which can be overridden by className
+    style={{ color: '#A16E2E' }} 
   >
     <style>
       {`
         .xerus-tail {
           animation: tail-wag 2.5s ease-in-out infinite;
-          transform-origin: 25px 80px;
+          /* Adjusted for the new standing position */
+          transform-origin: 50px 85px; 
         }
         @keyframes tail-wag {
           0%, 100% { transform: rotate(0deg); }
-          50% { transform: rotate(-10deg); }
+          50% { transform: rotate(-8deg); }
         }
       `}
     </style>
-    <g className="fill-current text-primary">
-      {/* Tail */}
-      <path
-        className="xerus-tail"
-        d="M25.5,80.5 C15,70,10,50,22,32 C28,22,40,25,40,25 C40,25,35,40,45,55 C55,70,65,75,78,70 C90,65,95,50,90,38 C85,26,70,20,55,28 C55,28,60,45,50,60 C40,75,25.5,80.5,25.5,80.5Z"
-      />
-      {/* Body */}
-      <path d="M45,75 C35,85,30,95,40,98 C50,101,65,95,75,85 C85,75,88,60,80,50 C72,40,60,42,50,55 C40,68,45,75,45,75Z" />
-      {/* Head */}
-      <circle cx="78" cy="48" r="10" />
-      {/* Eye */}
-      <circle cx="81" cy="46" r="1.5" fill="hsl(var(--primary-foreground))" />
-      {/* Ear */}
-      <path d="M72,39 A 5 5 0 0 1 78 37" stroke="hsl(var(--primary))" strokeWidth="2" fill="none" />
+    {/* The fill is set to 'currentColor' so it can be controlled via parent's text color or inline style */}
+    <g className="fill-current">
+        {/* Body */}
+        <path d="M50,45 C45,60 40,75 42,88 C44,101 56,101 58,88 C60,75 55,60 50,45Z" />
+        {/* Head */}
+        <path d="M47,25 C45,30 45,45 50,45 C55,45 55,30 53,25 C51,20 49,20 47,25Z" />
+        {/* Ear Left */}
+        <path d="M47,25 C46,22 47,20 48,20 C49,20 48,23 47,25Z" />
+        {/* Ear Right */}
+        <path d="M53,25 C54,22 53,20 52,20 C51,20 52,23 53,25Z" />
+        {/* Eye Left */}
+        <circle cx="48.5" cy="33" r="1.2" fill="white" />
+        {/* Eye Right */}
+        <circle cx="51.5" cy="33" r="1.2" fill="white" />
+        {/* Tail */}
+        <path className="xerus-tail" d="M50,85 C40,75 35,60 40,45 C45,30 55,25 65,30 C75,35 80,50 75,65 C70,80 60,90 50,85Z" />
     </g>
   </svg>
 );
