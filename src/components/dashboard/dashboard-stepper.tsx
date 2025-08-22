@@ -116,7 +116,7 @@ export function DashboardStepper({
                                 <span className="hidden md:inline">{step.title}</span>
                             </button>
                         </div>
-                        {index < steps.length - 1 && <div className={cn("mx-4 h-px flex-1 bg-border transition-colors", { "bg-primary": currentStep > index + 1 || steps[index].isComplete })} />}
+                        {index < steps.length - 1 && <div className={cn("mx-2 h-px flex-1 bg-border transition-colors md:mx-4", { "bg-primary": currentStep > index + 1 || steps[index].isComplete })} />}
                     </React.Fragment>
                 ))}
             </div>
@@ -179,11 +179,12 @@ export function DashboardStepper({
             <div className="flex justify-between items-center pt-4 border-t">
                 <Button variant="outline" onClick={goToPrevStep} disabled={currentStep === 1}>
                     <ArrowLeft className="mr-2" />
-                    Previous
+                    <span className="hidden sm:inline">Previous</span>
                 </Button>
                 {currentStep < steps.length && (
                     <Button onClick={goToNextStep} disabled={!canGoToNextStep}>
-                        {nextButtonText}
+                        <span className="hidden sm:inline">{nextButtonText}</span>
+                        <span className="sm:hidden">Next</span>
                         <ArrowRight className="ml-2" />
                     </Button>
                 )}

@@ -9,7 +9,7 @@ export default async function DashboardPage() {
   const initialCredentialSets = await getCredentialSetsAction();
 
   return (
-    <main className="flex-1 p-4 sm:p-6 md:p-8">
+    <main className="flex-1 p-4 md:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
             <p className="mt-1 text-lg text-muted-foreground">
