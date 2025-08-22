@@ -11,179 +11,131 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const HexAnimation: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef<{ x: number; y: number; isReturning?: boolean; returnStartTime?: number }>({ x: 0, y: 0 });
     const animationFrameId = useRef<number>();
-    const wavesRef = useRef<{x: number, y: number, radius: number, speed: number, maxRadius: number}[]>([]);
     const [isMounted, setIsMounted] = useState(false);
+    
+    // State for the glowing hexagons
+    const glowingHexes = useRef<Set<string>>(new Set());
+    const hexGlowData = useRef<Map<string, { startTime: number, duration: number }>>(new Map());
+
 
     useEffect(() => {
         setIsMounted(true);
     }, []);
 
-
     useEffect(() => {
+        if (!isMounted) return;
+
         const canvas = canvasRef.current;
-        if (!canvas || !isMounted) return;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        let center = { x: 0, y: 0 };
-
         const resizeCanvas = () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            center.x = canvas.width / 2;
-            center.y = canvas.height / 2;
-            if (!mouseRef.current.isReturning) {
-                mouseRef.current.x = center.x;
-                mouseRef.current.y = center.y;
-            }
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         };
 
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
-
-        const hexSize = 30;
+        
+        const hexSize = 50;
         const hexWidth = Math.sqrt(3) * hexSize;
         const hexHeight = 2 * hexSize;
-        const returnDuration = 4 * 60 * 1000; 
 
-        canvas.addEventListener('mousemove', (e) => {
-            mouseRef.current.isReturning = false;
-            const rect = canvas.getBoundingClientRect();
-            mouseRef.current.x = e.clientX - rect.left;
-            mouseRef.current.y = e.clientY - rect.top;
-        });
-        
-        canvas.addEventListener('mouseleave', () => {
-            mouseRef.current.isReturning = true;
-            mouseRef.current.returnStartTime = performance.now();
-        });
+        const pickNewGlowingHex = () => {
+            const cols = Math.ceil(canvas.width / hexWidth);
+            const rows = Math.ceil(canvas.height / (hexHeight * 0.75));
+            const randomRow = Math.floor(Math.random() * rows);
+            const randomCol = Math.floor(Math.random() * cols);
+            const key = `${randomCol}-${randomRow}`;
 
-        const createWave = () => {
-            if (wavesRef.current.length > 5) return; // Limit number of active waves
-            const side = Math.floor(Math.random() * 4);
-            let x, y;
-            switch(side) {
-                case 0: // top
-                    x = Math.random() * canvas.width;
-                    y = 0;
-                    break;
-                case 1: // right
-                    x = canvas.width;
-                    y = Math.random() * canvas.height;
-                    break;
-                case 2: // bottom
-                    x = Math.random() * canvas.width;
-                    y = canvas.height;
-                    break;
-                default: // left
-                    x = 0;
-                    y = Math.random() * canvas.height;
-                    break;
+            if (glowingHexes.current.size < 5 && !glowingHexes.current.has(key)) {
+                glowingHexes.current.add(key);
+                hexGlowData.current.set(key, {
+                    startTime: performance.now(),
+                    duration: 2000 + Math.random() * 3000 // Glow for 2-5 seconds
+                });
             }
-            wavesRef.current.push({
-                x,
-                y,
-                radius: 0,
-                speed: Math.random() * 0.4 + 0.2, // Randomized speed for more organic feel
-                maxRadius: Math.max(canvas.width, canvas.height)
-            });
         };
 
-        const waveInterval = setInterval(createWave, 2500); // Slightly longer interval
+        const glowInterval = setInterval(pickNewGlowingHex, 500);
 
-
-        const drawHex = (x: number, y: number, mouseDistance: number) => {
+        const drawHex = (x: number, y: number, isGlowing: boolean, glowProgress: number) => {
+            ctx.save();
             ctx.beginPath();
             for (let i = 0; i < 6; i++) {
                 const angle = (Math.PI / 3) * i;
                 const pointX = x + hexSize * Math.cos(angle);
                 const pointY = y + hexSize * Math.sin(angle);
-                if (i === 0) {
-                    ctx.moveTo(pointX, pointY);
-                } else {
-                    ctx.lineTo(pointX, pointY);
-                }
+                ctx.lineTo(pointX, pointY);
             }
             ctx.closePath();
 
-            let totalWaveInfluence = 0;
-            wavesRef.current.forEach(wave => {
-                const dx = x - wave.x;
-                const dy = y - wave.y;
-                const waveDistance = Math.sqrt(dx * dx + dy * dy);
-                const waveWidth = 60; // The width of the ripple
-                if (waveDistance < wave.radius && waveDistance > wave.radius - waveWidth) {
-                    totalWaveInfluence += (1 - (wave.radius - waveDistance) / waveWidth) * 0.25;
-                }
-            });
+            // Create a subtle 3D effect with a gradient
+            const gradient = ctx.createLinearGradient(x - hexSize, y - hexSize, x + hexSize, y + hexSize);
+            gradient.addColorStop(0, '#2a2a2a');
+            gradient.addColorStop(1, '#1a1a1a');
 
+            ctx.fillStyle = gradient;
+            ctx.fill();
 
-            const maxDist = Math.min(canvas.width, canvas.height) / 2;
-            const opacity = Math.max(0.1, 1 - mouseDistance / maxDist) + totalWaveInfluence;
-            
-            ctx.strokeStyle = `rgba(255, 223, 0, ${opacity * 0.6})`; // Slightly more subtle stroke
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            if (isGlowing) {
+                const opacity = Math.sin(glowProgress * Math.PI); // Pulse effect
+                const colorStops = [
+                    { offset: 0, color: `rgba(0, 255, 255, ${opacity * 0.8})` }, // Cyan
+                    { offset: 0.5, color: `rgba(138, 43, 226, ${opacity * 0.8})` }, // BlueViolet
+                    { offset: 1, color: `rgba(0, 255, 255, ${opacity * 0.8})` }, // Cyan
+                ];
 
-            const fillRadius = 150;
-            if (mouseDistance < fillRadius) {
-                 const fillOpacity = 1 - (mouseDistance / fillRadius);
-                 const gradient = ctx.createRadialGradient(x, y, 0, x, y, hexSize * 0.8);
-                 gradient.addColorStop(0, `rgba(255, 223, 0, ${fillOpacity * 0.6})`);
-                 gradient.addColorStop(1, `rgba(255, 223, 0, 0)`);
-                 ctx.fillStyle = gradient;
-                 ctx.fill();
+                const glowGradient = ctx.createLinearGradient(x - hexSize, y, x + hexSize, y);
+                colorStops.forEach(stop => glowGradient.addColorStop(stop.offset, stop.color));
+
+                ctx.strokeStyle = glowGradient;
+                ctx.lineWidth = 3;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'rgba(138, 43, 226, 0.7)';
+                ctx.stroke();
             }
+            ctx.restore();
         };
 
         const animate = () => {
             animationFrameId.current = requestAnimationFrame(animate);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            if (mouseRef.current.isReturning) {
-                const now = performance.now();
-                const elapsed = now - (mouseRef.current.returnStartTime || now);
-                const progress = Math.min(elapsed / returnDuration, 1);
-                
-                const startX = mouseRef.current.x;
-                const startY = mouseRef.current.y;
+            const now = performance.now();
 
-                // Ease-out interpolation
-                const easeOutProgress = 1 - Math.pow(1 - progress, 3);
-
-                const newX = startX + (center.x - startX) * easeOutProgress;
-                const newY = startY + (center.y - startY) * easeOutProgress;
-
-                mouseRef.current.x = newX;
-                mouseRef.current.y = newY;
-
-                if (progress >= 1) {
-                    mouseRef.current.isReturning = false;
+            // Update glowing hexes
+            const expiredHexes: string[] = [];
+            hexGlowData.current.forEach((data, key) => {
+                if (now > data.startTime + data.duration) {
+                    expiredHexes.push(key);
                 }
-            }
-
-            // Update and draw waves
-            wavesRef.current = wavesRef.current.filter(wave => wave.radius < wave.maxRadius);
-            wavesRef.current.forEach(wave => {
-                wave.radius += wave.speed;
+            });
+            expiredHexes.forEach(key => {
+                glowingHexes.current.delete(key);
+                hexGlowData.current.delete(key);
             });
 
 
-            const cols = Math.ceil(canvas.width / hexWidth);
-            const rows = Math.ceil(canvas.height / (hexHeight * 0.75));
+            const cols = Math.ceil(canvas.width / hexWidth) + 1;
+            const rows = Math.ceil(canvas.height / (hexHeight * 0.75)) + 1;
 
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     const xOffset = col * hexWidth + (row % 2 === 1 ? hexWidth / 2 : 0);
                     const yOffset = row * hexHeight * 0.75;
+                    const key = `${col}-${row}`;
+                    const isGlowing = glowingHexes.current.has(key);
                     
-                    const dx = xOffset - mouseRef.current.x;
-                    const dy = yOffset - mouseRef.current.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    drawHex(xOffset, yOffset, distance);
+                    let glowProgress = 0;
+                    if(isGlowing) {
+                        const data = hexGlowData.current.get(key)!;
+                        glowProgress = (now - data.startTime) / data.duration;
+                    }
+
+                    drawHex(xOffset, yOffset, isGlowing, glowProgress);
                 }
             }
         };
@@ -192,7 +144,7 @@ const HexAnimation: React.FC = () => {
 
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            clearInterval(waveInterval);
+            clearInterval(glowInterval);
             if (animationFrameId.current) {
               cancelAnimationFrame(animationFrameId.current);
             }
@@ -201,7 +153,7 @@ const HexAnimation: React.FC = () => {
 
     if (!isMounted) return null;
 
-    return <canvas ref={canvasRef} className="fixed inset-0 z-0 h-screen w-screen" />;
+    return <canvas ref={canvasRef} className="fixed inset-0 z-0 h-full w-full bg-[#111]" />;
 }
 
 const TypewriterHeadline = () => {
