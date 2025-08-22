@@ -35,7 +35,6 @@ export async function getUsersAction() {
     const client = await getClient();
     try {
         const result = await client.query('SELECT id, name, email, verified, "isAdmin" FROM users ORDER BY id ASC');
-        revalidatePath('/admin/dashboard');
         return result.rows;
     } catch (error) {
         console.error('[GET_USERS_ERROR]', error);
