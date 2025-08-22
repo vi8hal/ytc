@@ -56,17 +56,21 @@ export async function signUpAction(prevState: any, formData: FormData) {
             } else {
                 // User exists but is not verified. Resend OTP and guide them to verify.
                 const otp = await generateAndSaveOtp(client, email);
-                await sendVerificationEmail(
-                    email, 
-                    otp,
-                    'Your DCX1 Verification Code',
-                    `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-                        <h2>Welcome Back to DCX1!</h2>
-                        <p>Your new one-time verification code is:</p>
-                        <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
-                        <p style="color: #666;">This code will expire in 10 minutes.</p>
-                    </div>`
-                );
+                if (isAdmin) {
+                    console.log(`\n\n✅ ADMIN ACCOUNT OTP (as requested for existing, unverified admin):\nYour verification code is: ${otp}\n\n`);
+                } else {
+                    await sendVerificationEmail(
+                        email, 
+                        otp,
+                        'Your DCX1 Verification Code',
+                        `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+                            <h2>Welcome Back to DCX1!</h2>
+                            <p>Your new one-time verification code is:</p>
+                            <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
+                            <p style="color: #666;">This code will expire in 10 minutes.</p>
+                        </div>`
+                    );
+                }
                 
                 await client.query('COMMIT');
                 return { error: "This email is already registered but not verified. We've sent a new code.", showVerificationLink: true, email };
@@ -83,17 +87,22 @@ export async function signUpAction(prevState: any, formData: FormData) {
 
         const otp = await generateAndSaveOtp(client, email);
         
-        await sendVerificationEmail(
-            email, 
-            otp,
-            'Your DCX1 Verification Code',
-            `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
-                <h2>Welcome to DCX1!</h2>
-                <p>Your one-time verification code is:</p>
-                <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
-                <p style="color: #666;">This code will expire in 10 minutes.</p>
-            </div>`
-        );
+        if (isAdmin) {
+            // For the admin user, we log the OTP to the console to avoid email server setup for initial admin creation.
+            console.log(`\n\n✅ ADMIN ACCOUNT CREATED:\nAn admin account for ${email} has been created.\nYour verification code is: ${otp}\n\n`);
+        } else {
+            await sendVerificationEmail(
+                email, 
+                otp,
+                'Your DCX1 Verification Code',
+                `<div style="font-family: sans-serif; text-align: center; padding: 20px; border-radius: 10px; background-color: #f9f9f9;">
+                    <h2>Welcome to DCX1!</h2>
+                    <p>Your one-time verification code is:</p>
+                    <p style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #333; background-color: #eee; padding: 10px 20px; border-radius: 5px; display: inline-block;">${otp}</p>
+                    <p style="color: #666;">This code will expire in 10 minutes.</p>
+                </div>`
+            );
+        }
         
         await client.query('COMMIT');
     
