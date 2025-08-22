@@ -29,11 +29,11 @@ const XerusLogo = ({ className }: { className?: string }) => (
 
 
         {/* Body */}
-        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M85,54 C93,45,92,30,82,25 C70,20,60,30,60,45 C60,65,65,80,55,80 C50,80,50,70,70,55 C75,50,82,50,85,54 Z"/>
+        <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M85,54 C93,45,92,30,82,25 C70,20,60,30,58,45 C58,68,65,82,55,82 C50,82,50,70,70,55 C75,50,82,50,85,54 Z"/>
         {/* Underbelly */}
-        <path fill="#F0D7C4" d="M72,48 C70,60,68,75,57,78 C62,70,65,55,72,48 Z" />
+        <path fill="#F0D7C4" d="M72,48 C70,63,66,78,57,80 C62,73,65,55,72,48 Z" />
         {/* White Stripe */}
-        <path fill="white" stroke="white" strokeWidth="1" d="M63,45 C65,55,75,60,82,55" strokeLinecap="round"/>
+        <path fill="white" stroke="white" strokeWidth="1" d="M61,45 C65,55,75,60,82,55" strokeLinecap="round"/>
 
         {/* Head */}
         <path fill="#D9A37E" stroke="#8C542E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M82,25 C88,22,95,25,97,32 C99,38,95,45,88,48 C82,50,75,45,80,35 C82,30,82,25,82,25 Z"/>
