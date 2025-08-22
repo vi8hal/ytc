@@ -338,7 +338,7 @@ export default function LandingPage() {
             </div>
         </section>
 
-        <section id="features" className="relative z-10 mx-4 rounded-lg border border-white/10 bg-background/50 py-16 backdrop-blur-md lg:py-20">
+        <section id="features" className="relative z-10 mx-4 rounded-lg border border-white/10 bg-background/50 py-12 backdrop-blur-md lg:py-16">
             <div className="container">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why DCX1?</h2>
