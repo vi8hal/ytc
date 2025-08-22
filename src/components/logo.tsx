@@ -14,8 +14,8 @@ const XerusLogo = ({ className }: { className?: string }) => (
           transform-origin: 50px 85px; 
         }
         @keyframes tail-wag {
-          0%, 100% { transform: rotate(0deg); }
-          50% { transform: rotate(-6deg); }
+          0%, 100% { transform: rotate(4deg); }
+          50% { transform: rotate(-4deg); }
         }
       `}
     </style>
