@@ -324,7 +324,7 @@ export default function LandingPage() {
 
       <main className="flex-1 relative">
        
-        <section className="container relative pt-16 pb-16 text-center md:pt-24 md:pb-24">
+        <section className="container relative pt-20 pb-20 text-center md:pt-32 md:pb-32">
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
