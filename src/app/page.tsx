@@ -247,7 +247,7 @@ const HexAnimation: React.FC = () => {
 
 const TypewriterHeadline = () => {
     const [headlineText, setHeadlineText] = useState('');
-    const fullHeadline = "Revolutionize Your YouTube Engagement";
+    const fullHeadline = "Revolutionize Your Engagement";
 
     useEffect(() => {
         let i = 0;
@@ -328,7 +328,7 @@ export default function LandingPage() {
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
-                    Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple YouTube videos, boosting your visibility like never before.
+                    Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple videos, boosting your visibility like never before.
                 </p>
                 <div className="mt-10 flex justify-center gap-4">
                     <Button size="lg" variant="outline" asChild>
@@ -357,7 +357,7 @@ export default function LandingPage() {
                             <CardTitle className="text-center font-headline text-xl">Channel & Video Search</CardTitle>
                         </CardHeader>
                         <CardContent className="text-center text-muted-foreground">
-                            Easily find and select target YouTube channels and videos right within the app.
+                            Easily find and select target channels and videos right within the app.
                         </CardContent>
                     </Card>
                     <Card className="border-white/10 bg-card/50 shadow-lg transition-transform duration-300 hover:scale-105 hover:border-primary/30 hover:shadow-primary/10">
@@ -409,7 +409,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
             <Logo />
             <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-              Built to revolutionize YouTube engagement.
+              Built to revolutionize engagement.
             </p>
           </div>
           <p className="text-center text-sm text-muted-foreground md:text-left">
@@ -420,3 +420,5 @@ export default function LandingPage() {
     </div>
    );
 }
+
+    
