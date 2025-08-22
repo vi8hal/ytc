@@ -16,6 +16,9 @@ export default {
       },
     },
     extend: {
+      boxShadow: {
+        glow: '0 0 15px 5px hsl(var(--primary) / 0.2)',
+      },
       fontFamily: {
         body: ['Fauna One', 'serif'],
         headline: ['Cinzel', 'serif'],
