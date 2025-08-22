@@ -296,7 +296,7 @@ export default function LandingPage() {
             </div>
         </section>
 
-        <section id="features" className="bg-background/80 backdrop-blur-sm relative z-10 py-16 lg:py-20">
+        <section id="features" className="relative z-10 border-t border-b border-white/10 bg-background/50 py-16 backdrop-blur-md lg:py-20">
             <div className="container">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why DCX1?</h2>
@@ -305,7 +305,7 @@ export default function LandingPage() {
                     </p>
                 </div>
                 <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="border-white/10 bg-card/50 shadow-lg transition-transform duration-300 hover:scale-105 hover:border-primary/30 hover:shadow-primary/10">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -318,7 +318,7 @@ export default function LandingPage() {
                             Easily find and select target YouTube channels and videos right within the app.
                         </CardContent>
                     </Card>
-                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="border-white/10 bg-card/50 shadow-lg transition-transform duration-300 hover:scale-105 hover:border-primary/30 hover:shadow-primary/10">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -331,7 +331,7 @@ export default function LandingPage() {
                             Our GenAI randomly sends one of your four prepared comments to multiple videos.
                         </CardContent>
                     </Card>
-                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="border-white/10 bg-card/50 shadow-lg transition-transform duration-300 hover:scale-105 hover:border-primary/30 hover:shadow-primary/10">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -344,7 +344,7 @@ export default function LandingPage() {
                             Comments are posted randomly within a 10-minute window to appear more natural.
                         </CardContent>
                     </Card>
-                    <Card className="shadow-lg transition-transform duration-300 hover:scale-105 hover:shadow-lg">
+                    <Card className="border-white/10 bg-card/50 shadow-lg transition-transform duration-300 hover:scale-105 hover:border-primary/30 hover:shadow-primary/10">
                         <CardHeader>
                             <div className="mb-4 flex justify-center">
                                 <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
