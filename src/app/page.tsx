@@ -103,7 +103,11 @@ export default function LandingPage() {
             </div>
         </section>
 
+<<<<<<< HEAD
         <section id="features" className="relative z-10 mx-4 rounded-lg border border-white/10 bg-background/50 py-12 backdrop-blur-md lg:py-16">
+=======
+        <section id="features" className="relative z-40 mx-4 rounded-lg border border-white/10 bg-background/50 py-12 backdrop-blur-md lg:py-16 mt-16">
+>>>>>>> b8b22d6 (i cant see 'WHY DCX1' text on landing page make it visible)
             <div className="container">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl font-headline">Why DCX1?</h2>
