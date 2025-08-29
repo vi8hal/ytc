@@ -50,7 +50,7 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <HexAnimation />
-      <Card className="w-full max-w-md shadow-lg relative z-10">
+      <Card className="w-full max-w-md shadow-lg relative">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <Logo />
