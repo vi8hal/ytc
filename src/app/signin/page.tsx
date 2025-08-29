@@ -14,6 +14,7 @@ import { Logo } from '@/components/logo';
 import { signInAction } from '@/lib/actions/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { HexAnimation } from '@/components/landing/hex-animation';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -42,7 +43,8 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
+      <HexAnimation />
+      <Card className="w-full max-w-md shadow-lg relative z-10">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <Logo />

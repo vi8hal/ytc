@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { signUpAction } from '@/lib/actions/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { HexAnimation } from '@/components/landing/hex-animation';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -48,7 +49,8 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
+      <HexAnimation />
+      <Card className="w-full max-w-md shadow-lg relative z-10">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
             <Logo />
