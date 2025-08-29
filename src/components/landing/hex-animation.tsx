@@ -231,5 +231,5 @@ export const HexAnimation: React.FC = () => {
 
     if (!isMounted) return null;
 
-    return <canvas ref={canvasRef} className="fixed inset-0 z-40 h-full w-full bg-[#0A0A0A] pointer-events-none" />;
+    return <canvas ref={canvasRef} className="fixed inset-0 h-full w-full bg-[#0A0A0A] pointer-events-none" />;
 }
