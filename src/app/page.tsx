@@ -31,7 +31,7 @@ const TypewriterHeadline = () => {
     }, []);
 
     return (
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl font-headline min-h-[1em]">
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl font-headline min-h-[1em] [text-shadow:2px_2px_4px_rgba(0,0,0,0.5)]">
             {headlineText}
             <span className="animate-ping">|</span>
         </h1>
@@ -94,7 +94,7 @@ export default function LandingPage() {
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <motion.p 
-                    className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl"
+                    className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl [text-shadow:1px_1px_2px_rgba(0,0,0,0.5)]"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 1.8 }}
