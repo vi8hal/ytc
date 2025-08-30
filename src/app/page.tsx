@@ -7,6 +7,7 @@ import { Logo } from '@/components/logo'
 import { ArrowRight, BotMessageSquare, Search, ShieldCheck, Shuffle, Phone, Power, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import React, { useRef, useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { HexAnimation } from '@/components/landing/hex-animation'
 
@@ -92,14 +93,24 @@ export default function LandingPage() {
         <section className="container relative z-40 pt-20 pb-20 text-center md:pt-32 md:pb-32">
             <div className="relative z-10">
                 <TypewriterHeadline />
-                <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
+                <motion.p 
+                    className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 1.8 }}
+                >
                     Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple videos, boosting your visibility.
-                </p>
-                <div className="mt-10 flex justify-center gap-4">
+                </motion.p>
+                <motion.div 
+                    className="mt-10 flex justify-center gap-4"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 2.2 }}
+                >
                     <Button size="lg" variant="outline" asChild>
                     <Link href="#features">Learn More</Link>
                     </Button>
-                </div>
+                </motion.div>
             </div>
         </section>
 
