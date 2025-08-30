@@ -12,7 +12,7 @@ import { HexAnimation } from '@/components/landing/hex-animation'
 
 const TypewriterHeadline = () => {
     const [headlineText, setHeadlineText] = useState('');
-    const fullHeadline = "Revolutionize Your Engagement";
+    const fullHeadline = "Revolutionize Engagement";
 
     useEffect(() => {
         let i = 0;
