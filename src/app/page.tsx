@@ -93,7 +93,7 @@ export default function LandingPage() {
             <div className="relative z-10">
                 <TypewriterHeadline />
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground sm:text-xl md:text-2xl">
-                    Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple videos, boosting your visibility like never before.
+                    Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple videos, boosting your visibility.
                 </p>
                 <div className="mt-10 flex justify-center gap-4">
                     <Button size="lg" variant="outline" asChild>
