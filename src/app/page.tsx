@@ -99,7 +99,7 @@ export default function LandingPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 1.8 }}
                 >
-                    Digital Campaign Xerus 1 uses AI agent to strategically shuffle and post your comments on multiple videos, boosting your visibility.
+                    Digital Campaign Xerus 1 leverages AI to intelligently schedule and distribute comments across video platforms, optimizing reach and ensuring consistent audience visibility.
                 </motion.p>
                 <motion.div 
                     className="mt-10 flex justify-center gap-4"
